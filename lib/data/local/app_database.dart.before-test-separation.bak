@@ -26,14 +26,13 @@ class PracticeRecords extends Table {
 
   TextColumn get scoringVersion => text().withDefault(const Constant('v1'))();
 
-  BoolColumn get isTest => boolean().withDefault(const Constant(false))();
-
   // True until this record has been acknowledged by Firestore.
   BoolColumn get needsUpload => boolean().withDefault(const Constant(true))();
 
   @override
   Set<Column> get primaryKey => {id};
 }
+
 
 @DataClassName('LocalProfile')
 class UserProfiles extends Table {
@@ -53,11 +52,13 @@ class UserProfiles extends Table {
   // Changes every time the user edits the profile.
   TextColumn get revision => text()();
 
-  BoolColumn get needsUpload => boolean().withDefault(const Constant(true))();
+  BoolColumn get needsUpload =>
+      boolean().withDefault(const Constant(true))();
 
   @override
   Set<Column> get primaryKey => {userId};
 }
+
 
 @DriftDatabase(tables: [PracticeRecords, UserProfiles])
 class AppDatabase extends _$AppDatabase {
@@ -76,28 +77,17 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 3;
+int get schemaVersion => 2;
 
-  @override
-  MigrationStrategy get migration => MigrationStrategy(
-    onCreate: (migrator) => migrator.createAll(),
-    onUpgrade: (migrator, from, to) async {
-      if (from < 2) {
-        await migrator.createTable(userProfiles);
-      }
-
-      if (from < 3) {
-        await migrator.addColumn(practiceRecords, practiceRecords.isTest);
-
-        // Mark the records created by our database-test button.
-        await customStatement(
-          'UPDATE practice_records SET is_test = 1 '
-          'WHERE practice_purpose = ?',
-          ['Database test'],
-        );
-      }
-    },
-  );
+@override
+MigrationStrategy get migration => MigrationStrategy(
+  onCreate: (migrator) => migrator.createAll(),
+  onUpgrade: (migrator, from, to) async {
+    if (from < 2) {
+      await migrator.createTable(userProfiles);
+    }
+  },
+);
 
   Stream<List<PracticeRecord>> watchRecords(String userId) {
     return (select(practiceRecords)

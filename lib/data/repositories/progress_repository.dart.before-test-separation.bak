@@ -26,7 +26,6 @@ class ProgressRepository {
     required int durationSeconds,
     required int starsEarned,
     String? baselineSessionId,
-    bool isTest = false,
   }) async {
     if (userId.isEmpty) {
       throw ArgumentError('A signed-in account is required.');
@@ -49,7 +48,6 @@ class ProgressRepository {
             durationSeconds: durationSeconds,
             starsEarned: starsEarned,
             baselineSessionId: Value(baselineSessionId),
-            isTest: Value(isTest),
           ),
         );
 
@@ -87,7 +85,6 @@ class ProgressRepository {
         'starsEarned': record.starsEarned,
         'baselineSessionId': record.baselineSessionId,
         'scoringVersion': record.scoringVersion,
-        'isTest': record.isTest,
       });
 
       // Mark uploaded only after Firestore acknowledges the write.
@@ -113,14 +110,6 @@ class ProgressRepository {
       final stars = data['starsEarned'];
       final baseline = data['baselineSessionId'];
       final version = data['scoringVersion'];
-      final storedTestFlag = data['isTest'];
-
-      // Older cloud test records do not have this field.
-      if (storedTestFlag != null && storedTestFlag is! bool) {
-        throw StateError('Invalid cloud test flag.');
-      }
-
-      final isTest = purpose == 'Database test' || storedTestFlag == true;
 
       if (completedAt is! Timestamp ||
           purpose is! String ||
@@ -144,7 +133,6 @@ class ProgressRepository {
           baselineSessionId: Value(baseline as String?),
           scoringVersion: Value(version),
           needsUpload: const Value(false),
-          isTest: Value(isTest),
         ),
       );
     }
