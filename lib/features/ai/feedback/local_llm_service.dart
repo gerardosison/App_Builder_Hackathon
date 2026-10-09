@@ -34,6 +34,33 @@ class LocalLlmService {
   bool get isLoading => _isLoading;
   String get lastError => _lastError;
 
+  /// Removes private reasoning blocks that some local models emit.
+  static String stripThinking(String response) {
+    var cleaned = response;
+    final completeBlock = RegExp(
+      r'<think\b[^>]*>[\s\S]*?</think\s*>',
+      caseSensitive: false,
+    );
+    while (completeBlock.hasMatch(cleaned)) {
+      cleaned = cleaned.replaceFirst(completeBlock, '');
+    }
+    cleaned = cleaned.replaceFirst(
+      RegExp(r'<think\b[^>]*>[\s\S]*$', caseSensitive: false),
+      '',
+    );
+    cleaned = cleaned.replaceAll(
+      RegExp(r'</think\s*>', caseSensitive: false),
+      '',
+    );
+    // Streaming tokens can split a tag between chunks. Do not render a
+    // partial tag that is waiting for the next token.
+    cleaned = cleaned.replaceFirst(
+      RegExp(r'<\/?think\b[^>]*$', caseSensitive: false),
+      '',
+    );
+    return cleaned.trim();
+  }
+
   // ── MODEL SETUP ─────────────────────────────────────────────────────────────
 
   /// Copies the GGUF model from Flutter assets to app-documents directory
@@ -213,7 +240,9 @@ class LocalLlmService {
     ).listen(
       buf.write,
       onDone: () {
-        if (!completer.isCompleted) completer.complete(buf.toString().trim());
+        if (!completer.isCompleted) {
+          completer.complete(stripThinking(buf.toString()));
+        }
       },
       onError: (e) {
         if (!completer.isCompleted) completer.completeError(e);

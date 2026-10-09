@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import '../../../core/models/speech_metrics.dart';
 import '../../../core/models/pose_metrics.dart';
 import '../../../core/models/feedback_report.dart';
+import '../../../core/models/document_result.dart';
 import '../../../core/services/feedback_service.dart';
 import 'local_llm_service.dart';
 
@@ -254,7 +255,17 @@ class RuleBasedFeedbackEngine implements FeedbackService {
         pose: pose,
         speakingGoal: speakingGoal,
       );
-      llmExplanation = await llmService!.generateResponse(promptText);
+      if (document != null && document.isReadable) {
+        promptText = '$promptText\n'
+            'Uploaded script: ${document.title}\n'
+            'Script gaps to keep in mind: ${document.missingOrWeakTopics.take(3).join('; ')}\n'
+            'Suggested improvements: ${document.speechImprovements.take(3).join('; ')}\n'
+            'Compare the spoken delivery only with these script observations; do not claim content that was not transcribed.';
+      }
+      llmExplanation = await llmService!.generateResponse(
+        promptText,
+        maxTokens: 240,
+      );
     }
 
     return FeedbackReport(

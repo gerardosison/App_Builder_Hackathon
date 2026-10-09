@@ -1,22 +1,37 @@
-import '../../models/transcript_segment.dart';
+import '../../models/speech_metrics.dart';
 import '../speech_recognition_service.dart';
 
-/// TODO(backend): replace with Whisper-backed implementation.
+/// Fixture implementation for UI previews; production uses local Whisper.
 class MockSpeechRecognitionService implements SpeechRecognitionService {
   @override
-  Future<List<TranscriptSegment>> transcribe(String sessionId) async {
-    await Future<void>.delayed(const Duration(milliseconds: 400));
-    return const [
-      TranscriptSegment(
-          text: 'Good morning everyone, today I want to talk about '),
-      TranscriptSegment(text: 'um', isFiller: true),
-      TranscriptSegment(text: ' the industrial revolution and '),
-      TranscriptSegment(text: 'uh', isFiller: true),
-      TranscriptSegment(text: ' how it changed the way we live. '),
-      TranscriptSegment(text: '[long pause]', isPause: true),
-      TranscriptSegment(text: 'Factories transformed cities, and '),
-      TranscriptSegment(text: 'like, ', isFiller: true),
-      TranscriptSegment(text: 'they reshaped entire economies…'),
-    ];
+  Future<bool> isModelLoaded() async => true;
+
+  @override
+  Future<TranscriptionResult> transcribe(String audioPath, {String language = 'auto'}) async {
+    await Future<void>.delayed(const Duration(milliseconds: 250));
+    return const TranscriptionResult(
+      text: 'Preview transcript only.',
+      durationSeconds: 1,
+      detectedLanguage: 'en',
+    );
+  }
+
+  @override
+  SpeechMetrics calculateMetrics({
+    required TranscriptionResult transcription,
+    required double durationSeconds,
+  }) {
+    final words = transcription.text.trim().split(RegExp(r'\s+'));
+    final count = transcription.text.trim().isEmpty ? 0 : words.length;
+    return SpeechMetrics(
+      transcript: transcription.text,
+      wordCount: count,
+      speechDurationSeconds: durationSeconds,
+      wordsPerMinute: durationSeconds > 0 ? count * 60 / durationSeconds : 0,
+      fillerOccurrences: const {},
+      totalFillers: 0,
+      pauseCount: 0,
+      avgPauseDurationSeconds: 0,
+    );
   }
 }

@@ -323,7 +323,7 @@ class _HomeTabView extends StatelessWidget {
           children: [
             Expanded(
               child: _StatCard(
-                title: '7',
+                title: '0',
                 label: 'Day streak',
                 icon: Icons.local_fire_department_rounded,
                 color: AppColors.sky,
@@ -332,13 +332,23 @@ class _HomeTabView extends StatelessWidget {
             SizedBox(width: 14),
             Expanded(
               child: _StatCard(
-                title: '12',
+                title: '0',
                 label: 'Sessions completed',
                 icon: Icons.check_circle_outline_rounded,
                 color: AppColors.mint,
               ),
             ),
           ],
+        ),
+        const SizedBox(height: 16),
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.offline_bolt_rounded),
+            title: const Text('Ask your local AI coach'),
+            subtitle: const Text('Chat with Qwen on this device, even offline.'),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => context.go(AppRoutes.aiCoach),
+          ),
         ),
       ],
     );

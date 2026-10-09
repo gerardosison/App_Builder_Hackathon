@@ -7,6 +7,7 @@ import '../../../app/app_providers.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/widgets/pip_buttons.dart';
 import '../../../core/widgets/pip_cards.dart';
+import '../../../core/widgets/pip_chips.dart';
 import '../../../core/widgets/pip_mascot.dart';
 import '../../../core/widgets/pip_misc.dart';
 
@@ -55,7 +56,7 @@ class ScriptAnalysisScreen extends ConsumerWidget {
                       child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(doc.fileName,
+                            Text(doc.title,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: text.labelLarge?.copyWith(
@@ -66,82 +67,25 @@ class ScriptAnalysisScreen extends ConsumerWidget {
                                 style: text.bodySmall?.copyWith(
                                     color: scheme.onSurfaceVariant)),
                             const SizedBox(height: 2),
-                            Text(doc.readability,
-                                style: text.bodySmall?.copyWith(
-                                    color: scheme.onSurfaceVariant)),
                           ]),
                     ),
-                    Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppColors.tertiaryFixed
-                            .withValues(alpha: 0.6),
-                      ),
-                      child: Center(
-                        child: Text('${doc.overallScore}',
-                            style: text.headlineSmall?.copyWith(
-                                color: AppColors.onTertiaryFixed)),
-                      ),
+                    const PipBadge(
+                      label: 'On-device Qwen',
+                      icon: Icons.offline_bolt_outlined,
                     ),
                   ]),
                 ),
                 const SizedBox(height: 12),
-                const SectionHeader(title: 'Section scores'),
-                const SizedBox(height: 8),
-                for (final s in doc.sections)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: PipCard(
-                      padding: const EdgeInsets.all(14),
-                      child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(s.name,
-                                      style: text.labelLarge?.copyWith(
-                                          color: scheme.onSurface)),
-                                  Text('${s.score}/100',
-                                      style: text.labelMedium?.copyWith(
-                                          color: scheme.primary)),
-                                ]),
-                            const SizedBox(height: 8),
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(999),
-                              child: LinearProgressIndicator(
-                                value: s.score / 100,
-                                minHeight: 10,
-                                backgroundColor:
-                                    scheme.surfaceContainerHigh,
-                                valueColor: AlwaysStoppedAnimation(
-                                    s.score > 80
-                                        ? AppColors.tertiaryFixed
-                                        : s.score > 70
-                                            ? AppColors.secondaryFixed
-                                            : AppColors.errorContainer),
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(s.note,
-                                style: text.bodySmall?.copyWith(
-                                    color: scheme.onSurfaceVariant)),
-                          ]),
-                    ),
-                  ),
-                const SizedBox(height: 8),
-
-                const SectionHeader(title: 'What works'),
+                const SectionHeader(title: 'Covered topics'),
                 const SizedBox(height: 8),
                 PipCard(
                   padding: const EdgeInsets.all(16),
                   child: Column(children: [
-                    for (final s in doc.strengths)
+                    for (final s in doc.coveredTopics)
                       _bulletRow(context, Icons.check_circle,
                           AppColors.tertiaryFixed, s),
+                    if (doc.coveredTopics.isEmpty)
+                      const Text('Walang covered topics na naibalik ng model.'),
                   ]),
                 ),
                 const SizedBox(height: 12),
@@ -150,20 +94,25 @@ class ScriptAnalysisScreen extends ConsumerWidget {
                 PipCard(
                   padding: const EdgeInsets.all(16),
                   child: Column(children: [
-                    for (final s in doc.missingConcepts)
+                    for (final s in doc.missingOrWeakTopics)
                       _bulletRow(context, Icons.lightbulb,
                           AppColors.secondaryFixed, s),
-                    for (final s in doc.tips)
+                    for (final s in doc.speechImprovements)
                       _bulletRow(context, Icons.tips_and_updates,
                           AppColors.secondaryContainer, s),
+                    if (doc.missingOrWeakTopics.isEmpty &&
+                        doc.speechImprovements.isEmpty)
+                      const Text('Walang specific na gaps o suggestions na naibalik.'),
                   ]),
                 ),
                 const SizedBox(height: 20),
                 PrimaryButton(
                     label: 'Practice this speech',
                     icon: Icons.mic_external_on,
-                    onPressed: () =>
-                        context.push(AppRoutes.practiceSetup)),
+                    onPressed: () => context.push(
+                      AppRoutes.practiceSetup,
+                      extra: doc.title,
+                    )),
                 const SizedBox(height: 8),
                 Row(children: [
                   Expanded(

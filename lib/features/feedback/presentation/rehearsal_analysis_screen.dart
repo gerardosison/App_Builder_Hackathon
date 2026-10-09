@@ -35,9 +35,24 @@ class _RehearsalAnalysisScreenState
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
+    final history = ref.watch(sessionHistoryProvider);
     final session = widget.session ??
-        ref.watch(lastReportProvider)?.session ??
-        ref.watch(sessionHistoryProvider).first;
+        (history.isNotEmpty
+            ? history.first
+            : PracticeSession(
+                id: 'empty',
+                date: DateTime.now(),
+                title: 'Practice session',
+                duration: Duration.zero,
+                avgWpm: 0,
+                fillerCount: 0,
+                eyeContactPct: 0,
+                paceScore: 0,
+                starsEarned: 0,
+                improved: false,
+              ));
+    final report = ref.watch(lastReportProvider);
+    final pose = ref.watch(lastPoseMetricsProvider);
 
     final score = session.paceScore;
     final mins = session.duration.inMinutes;
@@ -131,24 +146,45 @@ class _RehearsalAnalysisScreenState
                           ? 'Trim "um" & "like"'
                           : 'Clean delivery'),
                   const SizedBox(height: 10),
-                  _metricBar('Eye contact', session.eyeContactPct / 100,
-                      '${session.eyeContactPct}%',
-                      AppColors.secondaryContainer,
-                      session.eyeContactPct > 75
-                          ? 'Great connection'
-                          : 'Look up more'),
+                  _metricBar(
+                    'Posture',
+                    (pose?.postureScore ?? 0) / 100,
+                    pose == null || !pose.isPersonInFrame
+                        ? 'Unavailable'
+                        : '${pose.postureScore.round()}/100',
+                    AppColors.secondaryContainer,
+                    pose == null || !pose.isPersonInFrame
+                        ? 'No camera measurement'
+                        : pose.qualityLimitations.isEmpty
+                            ? 'Measured from camera frames'
+                            : pose.qualityLimitations.first,
+                  ),
                   const SizedBox(height: 10),
-                  _metricBar('Pace control', session.paceScore / 100,
-                      '${session.paceScore}/100', AppColors.tertiaryFixed,
-                      session.paceScore > 75 ? 'Smooth' : 'Work on flow'),
+                  _metricBar(
+                    'Body sway',
+                    ((pose?.bodySwayCm ?? 0) / 15).clamp(0.0, 1.0),
+                    pose == null || !pose.isPersonInFrame
+                        ? 'Unavailable'
+                        : '${pose.bodySwayCm.toStringAsFixed(1)} cm',
+                    AppColors.tertiaryFixed,
+                    pose == null || !pose.isPersonInFrame
+                        ? 'No camera measurement'
+                        : 'Measured from camera frames',
+                  ),
                 ] else ...[
-                  _sectionRow('Introduction', 90, 'Strong hook landed'),
-                  _sectionRow('Body / Evidence', 76, 'Add one more example'),
-                  _sectionRow('Conclusion', 62, 'Rushed — slow down & land it'),
+                  if (report == null ||
+                      (report.strengths.isEmpty && report.improvements.isEmpty))
+                    const Text('No topic feedback returned for this session.')
+                  else ...[
+                    for (final item in report.strengths)
+                      _sectionRow(item.title, 100, item.actionableTip),
+                    for (final item in report.improvements)
+                      _sectionRow(item.title, 50, item.actionableTip),
+                  ],
                 ],
 
                 const SizedBox(height: 16),
-                // Weak-section callout
+                // Evidence based summary from local rules and Qwen.
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -165,9 +201,10 @@ class _RehearsalAnalysisScreenState
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            'Weakest stretch: 1:40–2:15 — pace spiked to '
-                            '172 wpm with 4 fillers. Try a breath before '
-                            'that section next take.',
+                            report?.llmResponse?.isNotEmpty == true
+                                ? report!.llmResponse!
+                                : report?.summary ??
+                                    'Wala pang local AI feedback para sa session na ito.',
                             style: text.bodyMedium?.copyWith(
                                 color:
                                     AppColors.onSecondaryFixedVariant),

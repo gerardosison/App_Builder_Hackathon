@@ -4,14 +4,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/permissions/permission_service.dart';
 import '../core/services/document_service.dart';
 import '../core/services/feedback_service.dart';
-import '../core/services/mock/mock_document_service.dart';
-import '../core/services/mock/mock_feedback_service.dart';
 import '../core/services/mock/mock_permission_service.dart';
-import '../core/services/mock/mock_pose_analysis_service.dart';
-import '../core/services/mock/mock_speech_recognition_service.dart';
 import '../core/services/pose_analysis_service.dart';
 import '../core/services/speech_recognition_service.dart';
 import '../features/auth/services/local_auth_service.dart';
+import '../features/ai/feedback/local_llm_service.dart';
+import '../features/ai/feedback/rule_based_feedback.dart';
+import '../features/ai/speech/whisper_service.dart';
+import '../features/ai/vision/mediapipe_pose_service.dart';
+import '../features/documents/services/local_document_service.dart';
 
 // Re-export feature-scoped providers + shared option lists so screens
 // can keep a single app-level import.
@@ -38,13 +39,15 @@ final authServiceProvider = Provider<AuthService>((_) => LocalAuthService());
 final permissionServiceProvider =
     Provider<PermissionService>((_) => MockPermissionService());
 final speechRecognitionProvider = Provider<SpeechRecognitionService>(
-    (_) => MockSpeechRecognitionService());
+    (_) => WhisperSpeechService());
 final poseAnalysisProvider =
-    Provider<PoseAnalysisService>((_) => MockPoseAnalysisService());
+    Provider<PoseAnalysisService>((_) => MediaPipePoseServiceImpl());
 final feedbackServiceProvider =
-    Provider<FeedbackService>((_) => MockFeedbackService());
+    Provider<FeedbackService>((_) => RuleBasedFeedbackEngine(
+          llmService: LocalLlmService(),
+        ));
 final documentServiceProvider =
-    Provider<DocumentService>((_) => MockDocumentService());
+    Provider<DocumentService>((_) => LocalDocumentService());
 
 // ------------------------------------------------------------------- Auth
 /// Simple onboarding/auth gate for the router redirect.

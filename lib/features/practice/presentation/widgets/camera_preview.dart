@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:camera/camera.dart';
 
 import '../../../../app/theme/app_colors.dart';
 
@@ -9,12 +10,14 @@ class CameraPreviewWidget extends StatefulWidget {
     super.key,
     this.isCameraOn = true,
     this.isMicOn = true,
+    this.controller,
     this.onToggleCamera,
     this.onToggleMic,
   });
 
   final bool isCameraOn;
   final bool isMicOn;
+  final CameraController? controller;
   final ValueChanged<bool>? onToggleCamera;
   final ValueChanged<bool>? onToggleMic;
 
@@ -260,6 +263,10 @@ class _CameraPreviewWidgetState extends State<CameraPreviewWidget>
   }
 
   Widget _buildCameraFeed() {
+    final controller = widget.controller;
+    if (controller != null && controller.value.isInitialized) {
+      return SizedBox.expand(child: CameraPreview(controller));
+    }
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(

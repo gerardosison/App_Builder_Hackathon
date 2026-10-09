@@ -5,6 +5,11 @@ class DocumentResult {
   final bool isReadable;
   final List<String> keySections;
   final String? rejectionReason;
+  final List<String> coveredTopics;
+  final List<String> missingOrWeakTopics;
+  final List<String> speechImprovements;
+  final int wordCount;
+  final double estimatedMinutes;
 
   const DocumentResult({
     required this.documentId,
@@ -13,6 +18,11 @@ class DocumentResult {
     this.isReadable = true,
     this.keySections = const [],
     this.rejectionReason,
+    this.coveredTopics = const [],
+    this.missingOrWeakTopics = const [],
+    this.speechImprovements = const [],
+    this.wordCount = 0,
+    this.estimatedMinutes = 0,
   });
 
   factory DocumentResult.empty() {

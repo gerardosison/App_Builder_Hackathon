@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/models/models.dart';
+import '../features/ai/presentation/local_coach_screen.dart';
 import '../features/auth/presentation/forgot_password_screen.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/register_screen.dart';
@@ -36,6 +37,7 @@ abstract final class AppRoutes {
   static const tour = '/tour';
   static const personalize = '/personalize';
   static const home = '/home';
+  static const aiCoach = '/coach';
   static const practice = '/practice';
   static const progress = '/progress';
   static const profile = '/profile';
@@ -71,8 +73,14 @@ final routerProvider = Provider<GoRouter>((ref) => GoRouter(
           builder: (_, state, child) => HomeScreen(location: state.uri.path, child: child),
           routes: [
             GoRoute(path: AppRoutes.home, builder: (_, _) => const HomeLandingScreen()),
+            GoRoute(path: AppRoutes.aiCoach, builder: (_, _) => const LocalCoachScreen()),
             GoRoute(path: AppRoutes.practice, redirect: (_, _) => AppRoutes.practiceSetup),
-            GoRoute(path: AppRoutes.practiceSetup, builder: (_, _) => const SetupScreen()),
+            GoRoute(
+              path: AppRoutes.practiceSetup,
+              builder: (_, state) => SetupScreen(
+                speechTopic: state.extra as String? ?? 'Tell a story in 60 seconds',
+              ),
+            ),
             GoRoute(path: AppRoutes.practiceLive, builder: (_, _) => const PracticeScreen()),
             GoRoute(path: AppRoutes.practiceDenied, builder: (_, _) => const PermissionDeniedView()),
             GoRoute(path: AppRoutes.processing, builder: (_, _) => const ProcessingScreen()),

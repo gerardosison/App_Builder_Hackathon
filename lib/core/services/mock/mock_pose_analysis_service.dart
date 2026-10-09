@@ -1,16 +1,16 @@
 import '../../models/pose_metrics.dart';
 import '../pose_analysis_service.dart';
 
-/// TODO(backend): replace with MediaPipe pose landmarker pipeline.
+/// Fixture implementation for UI previews; production uses on-device pose detection.
 class MockPoseAnalysisService implements PoseAnalysisService {
   @override
-  Future<PoseMetrics> analyzePose(String sessionId) async {
-    await Future<void>.delayed(const Duration(milliseconds: 400));
-    return PoseMetrics(
-      sessionId: sessionId,
-      eyeContactPct: 78,
-      postureScore: 82,
-      headSteadinessPct: 71,
-    );
-  }
+  Future<bool> isModelInitialized() async => true;
+
+  @override
+  Future<PoseMetrics?> analyzeSession(String sessionId) async =>
+      PoseMetrics.unavailable(reason: 'Preview mode has no camera measurements.');
+
+  @override
+  Future<PoseMetrics> analyzeFrames(List<PoseFrameData> frames) async =>
+      PoseMetrics.unavailable(reason: 'Preview mode has no camera measurements.');
 }

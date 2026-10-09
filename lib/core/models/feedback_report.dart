@@ -54,22 +54,6 @@ class FeedbackItem {
   });
 }
 
-class DocumentResult {
-  final String documentId;
-  final String title;
-  final String extractedText;
-  final bool isReadable;
-  final List<String> keySections;
-
-  const DocumentResult({
-    required this.documentId,
-    required this.title,
-    required this.extractedText,
-    this.isReadable = true,
-    this.keySections = const [],
-  });
-}
-
 class FeedbackReport {
   final double overallScore; // 0 - 100
   final String summary;
@@ -80,6 +64,8 @@ class FeedbackReport {
   final DateTime generatedAt;
   final String? localLlmPrompt;
   final String? llmResponse;
+  final int starsEarned;
+  final bool leveledUp;
 
   const FeedbackReport({
     required this.overallScore,
@@ -91,6 +77,8 @@ class FeedbackReport {
     required this.generatedAt,
     this.localLlmPrompt,
     this.llmResponse,
+    this.starsEarned = 0,
+    this.leveledUp = false,
   });
 
   factory FeedbackReport.empty() {
@@ -102,6 +90,8 @@ class FeedbackReport {
       evidenceList: const [],
       limitations: const ['No speech or pose metrics received.'],
       generatedAt: DateTime.now(),
+      starsEarned: 0,
+      leveledUp: false,
     );
   }
 }
