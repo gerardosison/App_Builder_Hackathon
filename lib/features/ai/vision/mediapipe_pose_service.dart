@@ -12,17 +12,15 @@ class MediaPipePoseServiceImpl implements PoseAnalysisService {
   }
 
   Future<void> initializeModel() async {
-    await Future.delayed(const Duration(milliseconds: 250));
     _isInitialized = true;
   }
 
   @override
   Future<PoseMetrics?> analyzeSession(String sessionId) async {
-    if (!_isInitialized) {
-      await initializeModel();
-    }
-    final frames = generateSamplePoseSequence(frameCount: 150, swayCm: 3.2);
-    return analyzeFrames(frames);
+    return PoseMetrics.unavailable(
+      reason: 'No camera frames were provided for session "$sessionId". '
+          'Pass frames captured by the camera pose pipeline to analyzeFrames().',
+    );
   }
 
   @override
@@ -151,31 +149,4 @@ class MediaPipePoseServiceImpl implements PoseAnalysisService {
     );
   }
 
-  static List<PoseFrameData> generateSamplePoseSequence({
-    int frameCount = 100,
-    double swayCm = 2.5,
-    bool simulateOcclusion = false,
-  }) {
-    List<PoseFrameData> list = [];
-    for (int i = 0; i < frameCount; i++) {
-      double t = i / 30.0;
-      double offsetX = math.sin(t * 1.5) * (swayCm / 100.0);
-      double torsoX = 0.5 + offsetX;
-
-      Map<int, PoseLandmarkPoint> lm = {
-        0: PoseLandmarkPoint(x: torsoX, y: 0.2, visibility: 0.98),
-        11: PoseLandmarkPoint(x: torsoX - 0.12, y: 0.35, visibility: 0.98),
-        12: PoseLandmarkPoint(x: torsoX + 0.12, y: 0.35, visibility: 0.98),
-        15: PoseLandmarkPoint(x: torsoX - 0.15, y: 0.42 + math.sin(t * 3.0) * 0.04, visibility: 0.95),
-        16: PoseLandmarkPoint(x: torsoX + 0.15, y: 0.42 + math.cos(t * 3.0) * 0.04, visibility: 0.95),
-      };
-      list.add(PoseFrameData(
-        timestampMs: i * 33,
-        landmarks: lm,
-        isPersonDetected: true,
-        isOccluded: simulateOcclusion && (i % 20 == 0),
-      ));
-    }
-    return list;
-  }
 }

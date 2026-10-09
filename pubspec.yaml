@@ -41,6 +41,11 @@ dependencies:
   path: ^1.9.1
   google_mlkit_pose_detection: 0.12.0
   audioplayers: 6.1.0
+  file_picker: ^13.1.0
+  syncfusion_flutter_pdf: ^35.1.39
+  llama_flutter_android: ^0.2.6
+  google_mlkit_text_recognition: ^0.13.0
+  pdfrx: ^2.6.5
 
 dev_dependencies:
   flutter_test:
@@ -63,6 +68,9 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  assets:
+    - assets/models/llm/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

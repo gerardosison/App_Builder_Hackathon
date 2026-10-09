@@ -1,8 +1,12 @@
-import 'dart:async';
+import 'dart:io';
 import '../../../core/models/speech_metrics.dart';
 import '../../../core/services/speech_recognition_service.dart';
 
-/// Member 4 - Offline Whisper Speech-To-Text implementation using whisper.cpp / GGML Base Multilingual model
+/// Speech metrics service.
+///
+/// The live Android practice screen uses the device speech recognizer directly.
+/// This class deliberately does not fabricate a transcript when a native
+/// Whisper runtime is unavailable.
 class WhisperSpeechService implements SpeechRecognitionService {
   bool _isLoaded = false;
   final String modelPath;
@@ -11,47 +15,29 @@ class WhisperSpeechService implements SpeechRecognitionService {
 
   @override
   Future<bool> isModelLoaded() async {
-    // Simulated native check / asset check
     return _isLoaded;
   }
 
   Future<void> initializeModel() async {
-    // Simulates loading GGML Whisper Base model in offline memory
-    await Future.delayed(const Duration(milliseconds: 300));
+    final model = File(modelPath);
+    if (!model.existsSync() || model.lengthSync() < 1024 * 1024) {
+      throw StateError(
+        'Whisper model is not available at "$modelPath". '
+        'Use the live Android speech recognizer or install a real Whisper '
+        'native runtime before calling this service.',
+      );
+    }
     _isLoaded = true;
   }
 
   @override
   Future<TranscriptionResult> transcribe(String audioPath) async {
-    if (!_isLoaded) {
-      await initializeModel();
-    }
-
     if (audioPath.isEmpty) {
       return TranscriptionResult.failure('Audio file path is empty.');
     }
-
-    // Simulated offline Whisper ASR processing
-    await Future.delayed(const Duration(milliseconds: 600));
-
-    // Sample transcription output for testing/demo
-    const sampleText =
-        'Good day everyone. Welcome to HawkABuild public speaking practice. '
-        'Um, today I will discuss our project strategy and key objectives. '
-        'Uh, we aim to build an offline speaking coach using local AI on device.';
-
-    final List<TranscriptSegment> segments = [
-      const TranscriptSegment(id: 1, startSeconds: 0.0, endSeconds: 4.5, text: 'Good day everyone. Welcome to HawkABuild public speaking practice.'),
-      const TranscriptSegment(id: 2, startSeconds: 5.0, endSeconds: 10.2, text: 'Um, today I will discuss our project strategy and key objectives.'),
-      const TranscriptSegment(id: 3, startSeconds: 11.0, endSeconds: 16.8, text: 'Uh, we aim to build an offline speaking coach using local AI on device.'),
-    ];
-
-    return TranscriptionResult(
-      text: sampleText,
-      durationSeconds: 17.0,
-      detectedLanguage: 'en',
-      segments: segments,
-      isSuccess: true,
+    return TranscriptionResult.failure(
+      'Offline Whisper transcription is not wired to a native runtime. '
+      'The Android practice screen uses live device speech recognition instead.',
     );
   }
 

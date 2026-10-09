@@ -1,25 +1,35 @@
 package com.hawkabuild.app.ai
 
 import android.content.Context
-import java.io.File
+import java.io.BufferedInputStream
 
 /**
- * Member 4 - Offline Whisper ASR Native Kotlin Engine Wrapper
- * Manages ggml-base-q5_1.bin model asset loading and speech transcription
+ * Validates the optional Whisper asset.
+ *
+ * The current Android speech path is the live speech_to_text recognizer. We
+ * refuse to return fabricated text when a native Whisper runtime is absent.
  */
 class WhisperEngine(private val context: Context) {
     private var isLoaded = false
     private val modelPath = "models/whisper/ggml-base-q5_1.bin"
 
     fun initialize(): Boolean {
-        // Checks model file presence in assets or app internal storage
-        isLoaded = true
-        return true
+        isLoaded = try {
+            context.assets.open(modelPath).use { raw ->
+                BufferedInputStream(raw).use { input ->
+                    input.available() >= 1024 * 1024
+                }
+            }
+        } catch (_: Exception) {
+            false
+        }
+        return isLoaded
     }
 
     fun transcribe(audioPath: String): String {
-        if (!isLoaded) initialize()
-        return "Good day everyone. Welcome to HawkABuild offline practice."
+        throw UnsupportedOperationException(
+            "Native Whisper runtime is not installed. Use the live Android speech recognizer."
+        )
     }
 
     fun isReady(): Boolean = isLoaded

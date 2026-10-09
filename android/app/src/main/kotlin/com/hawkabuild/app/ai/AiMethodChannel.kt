@@ -16,12 +16,16 @@ class AiMethodChannel(private val context: Context) : MethodChannel.MethodCallHa
         when (call.method) {
             "transcribe" -> {
                 val audioPath = call.argument<String>("audioPath") ?: ""
-                result.success(whisperEngine.transcribe(audioPath))
+                try {
+                    result.success(whisperEngine.transcribe(audioPath))
+                } catch (error: UnsupportedOperationException) {
+                    result.error("WHISPER_UNAVAILABLE", error.message, null)
+                }
             }
             "checkModelStatus" -> {
                 val statusMap = mapOf(
-                    "whisper" to whisperEngine.isReady(),
-                    "pose" to poseEngine.isReady(),
+                    "whisper" to whisperEngine.initialize(),
+                    "pose" to poseEngine.initialize(),
                     "llm" to llamaEngine.initialize()
                 )
                 result.success(statusMap)
