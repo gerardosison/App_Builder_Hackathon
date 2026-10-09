@@ -1,13 +1,22 @@
 import 'dart:async';
+import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../app/app_providers.dart';
+import '../../../app/app_router.dart';
 import '../../../app/theme/app_colors.dart';
-import 'processing_screen.dart';
+import '../../../core/models/practice_session.dart';
+import '../../../core/models/pose_metrics.dart';
+import '../../../features/ai/feedback/local_llm_service.dart';
+import '../services/audio_recorder_service.dart';
+import '../services/pose_camera_session.dart';
 import 'widgets/audience_character.dart';
 import 'widgets/practice_timer.dart';
 import 'widgets/recording_controls.dart';
 
-class PracticeScreen extends StatefulWidget {
+class PracticeScreen extends ConsumerStatefulWidget {
   const PracticeScreen({
     super.key,
     this.speechTopic = 'Tell a story in 60 seconds',
@@ -20,11 +29,10 @@ class PracticeScreen extends StatefulWidget {
   final bool isMicInitiallyOn;
 
   @override
-  State<PracticeScreen> createState() => _PracticeScreenState();
+  ConsumerState<PracticeScreen> createState() => _PracticeScreenState();
 }
 
-class _PracticeScreenState extends State<PracticeScreen>
-    with SingleTickerProviderStateMixin {
+class _PracticeScreenState extends ConsumerState<PracticeScreen> {
   // Step 2: Countdown state (10s to 0)
   bool _isCountingDown = true;
   int _countdownSeconds = 10;
@@ -34,21 +42,44 @@ class _PracticeScreenState extends State<PracticeScreen>
   int _elapsedSpeechSeconds = 0;
   Timer? _speechTimer;
 
-  // Step 3: Voice loudness indicator state
-  double _loudnessLevel = 0.65; // 0.0 to 1.0 (Optimal)
-  Timer? _loudnessTimer;
-
-  late final AnimationController _pulseController;
+  final AudioRecorderService _audio = AudioRecorderService();
+  final PoseCameraSession _poseSession = PoseCameraSession();
+  CameraController? _cameraController;
+  CameraDescription? _cameraDescription;
+  bool _isAnalyzing = false;
 
   @override
   void initState() {
     super.initState();
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 900),
-    )..repeat(reverse: true);
-
+    unawaited(_prepareCamera());
     _startCountdown();
+  }
+
+  Future<void> _prepareCamera() async {
+    try {
+      final cameras = await availableCameras();
+      if (cameras.isEmpty) return;
+      final camera = cameras.firstWhere(
+        (item) => item.lensDirection == CameraLensDirection.back,
+        orElse: () => cameras.first,
+      );
+      final controller = PoseCameraSession.createCameraController(camera);
+      await controller.initialize();
+      if (!mounted) {
+        await controller.dispose();
+        return;
+      }
+      setState(() {
+        _cameraController = controller;
+        _cameraDescription = camera;
+      });
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Camera unavailable: $error')),
+        );
+      }
+    }
   }
 
   void _startCountdown() {
@@ -68,6 +99,7 @@ class _PracticeScreenState extends State<PracticeScreen>
       _isCountingDown = false;
       _countdownSeconds = 0;
     });
+    unawaited(_startRealCapture());
 
     // Start speech timer
     _speechTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -75,15 +107,23 @@ class _PracticeScreenState extends State<PracticeScreen>
       setState(() => _elapsedSpeechSeconds++);
     });
 
-    // Simulate dynamic voice loudness fluctuations
-    _loudnessTimer =
-        Timer.periodic(const Duration(milliseconds: 400), (timer) {
-      if (!mounted) return;
-      setState(() {
-        // Vary between 0.45 and 0.85
-        _loudnessLevel = 0.50 + (DateTime.now().millisecond % 40) / 100.0;
-      });
-    });
+  }
+
+  Future<void> _startRealCapture() async {
+    try {
+      await _audio.startRecording();
+      final controller = _cameraController;
+      final camera = _cameraDescription;
+      if (controller != null && camera != null) {
+        await _poseSession.start(controller, camera);
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Hindi masimulan ang recording/camera: $error')),
+        );
+      }
+    }
   }
 
   void _skipCountdown() {
@@ -92,28 +132,76 @@ class _PracticeScreenState extends State<PracticeScreen>
   }
 
   // Step 4: The user can end the speech by clicking the X button at the bottom middle
-  void _endSpeech() {
+  Future<void> _endSpeech() async {
     _speechTimer?.cancel();
-    _loudnessTimer?.cancel();
+    setState(() => _isAnalyzing = true);
+    try {
+      final seconds = _audio.secondsElapsed;
+      final audioPath = await _audio.stopAndGetPath();
+      PoseMetrics? poseMetrics;
+      if (_poseSession.isRunning) {
+        poseMetrics = await _poseSession.stop('practice-${DateTime.now().millisecondsSinceEpoch}');
+      }
+      if (audioPath == null || seconds < 1) {
+        throw StateError('Magsalita muna nang kahit ilang segundo bago tapusin.');
+      }
 
-    // Step 5: Load and process the speech behind the scenes
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ProcessingScreen(
-          speechTopic: widget.speechTopic,
-          durationSeconds: _elapsedSpeechSeconds,
-        ),
-      ),
-    );
+      final speechService = ref.read(speechRecognitionProvider);
+      final transcription = await speechService.transcribe(audioPath);
+      if (!transcription.isSuccess) {
+        throw StateError(
+          transcription.errorMessage ?? 'Hindi na-transcribe ang recording.',
+        );
+      }
+      final speechMetrics = speechService.calculateMetrics(
+        transcription: transcription,
+        durationSeconds: seconds.toDouble(),
+      );
+      ref.read(lastSpeechMetricsProvider.notifier).state = speechMetrics;
+      ref.read(lastPoseMetricsProvider.notifier).state = poseMetrics;
+
+      final llm = LocalLlmService();
+      if (!llm.isLoaded) await llm.initialize();
+      final report = await ref.read(feedbackServiceProvider).generate(
+            speech: speechMetrics,
+            pose: poseMetrics,
+            document: ref.read(lastDocAnalysisProvider),
+            speakingGoal: widget.speechTopic,
+          );
+      ref.read(lastReportProvider.notifier).state = report;
+      final session = PracticeSession(
+        id: 'practice-${DateTime.now().millisecondsSinceEpoch}',
+        date: DateTime.now(),
+        title: widget.speechTopic,
+        duration: Duration(seconds: seconds),
+        avgWpm: speechMetrics.wordsPerMinute.round(),
+        fillerCount: speechMetrics.totalFillers,
+        // Eye gaze is not tracked; keep this unset instead of relabeling posture.
+        eyeContactPct: 0,
+        paceScore: report.overallScore.round(),
+        starsEarned: 0,
+        improved: false,
+        goal: widget.speechTopic,
+      );
+      if (mounted) context.pushReplacement(AppRoutes.rehearsalAnalysis, extra: session);
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Hindi natapos ang AI analysis: $error')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isAnalyzing = false);
+    }
   }
 
   @override
   void dispose() {
     _countdownTimer?.cancel();
     _speechTimer?.cancel();
-    _loudnessTimer?.cancel();
-    _pulseController.dispose();
+    unawaited(_audio.dispose());
+    unawaited(_poseSession.dispose());
+    unawaited(_cameraController?.dispose());
     super.dispose();
   }
 
@@ -236,8 +324,15 @@ class _PracticeScreenState extends State<PracticeScreen>
   // STEP 4: END SPEECH BY CLICKING THE X BUTTON AT BOTTOM MIDDLE.
   // ---------------------------------------------------------------------------
   Widget _buildLiveSpeechView() {
-    final loudnessDb = (50 + (_loudnessLevel * 30)).round();
-
+    if (_isAnalyzing) {
+      return const Scaffold(
+        body: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+          CircularProgressIndicator(),
+          SizedBox(height: 16),
+          Text('Transcribing offline audio and preparing your Qwen feedback…'),
+        ])),
+      );
+    }
     return Scaffold(
       body: Stack(
         fit: StackFit.expand,
@@ -278,11 +373,17 @@ class _PracticeScreenState extends State<PracticeScreen>
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      const Icon(
-                        Icons.person_rounded,
-                        color: Colors.white54,
-                        size: 38,
-                      ),
+                      if (_cameraController?.value.isInitialized == true)
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(14),
+                          child: CameraPreview(_cameraController!),
+                        )
+                      else
+                        const Icon(
+                          Icons.person_rounded,
+                          color: Colors.white54,
+                          size: 38,
+                        ),
                       Positioned(
                         bottom: 4,
                         child: Container(
@@ -341,7 +442,7 @@ class _PracticeScreenState extends State<PracticeScreen>
             left: 20,
             right: 20,
             bottom: 120,
-            child: _buildVoiceLoudnessIndicator(loudnessDb),
+            child: _buildVoiceLoudnessIndicator(),
           ),
 
           // Step 4: The user can end the speech by clicking the X button at the bottom middle
@@ -360,8 +461,8 @@ class _PracticeScreenState extends State<PracticeScreen>
     );
   }
 
-  /// Indicator of voice loudness with VU level bars and dB readout
-  Widget _buildVoiceLoudnessIndicator(int loudnessDb) {
+  /// Shows a recording state without displaying simulated loudness readings.
+  Widget _buildVoiceLoudnessIndicator() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -376,82 +477,16 @@ class _PracticeScreenState extends State<PracticeScreen>
           ),
         ],
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Row(
-                children: [
-                  Icon(
-                    Icons.volume_up_rounded,
-                    color: AppColors.yellow,
-                    size: 18,
-                  ),
-                  SizedBox(width: 8),
-                  Text(
-                    'Voice Loudness',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: AppColors.blue.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.blue),
-                ),
-                child: Text(
-                  'Optimal ($loudnessDb dB)',
-                  style: const TextStyle(
-                    color: AppColors.sky,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ],
+      child: const Row(children: [
+        Icon(Icons.mic_rounded, color: AppColors.yellow, size: 18),
+        SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            'Audio is recording locally for offline Whisper transcription.',
+            style: TextStyle(color: Colors.white, fontSize: 12),
           ),
-          const SizedBox(height: 10),
-          // Loudness dynamic audio bars
-          Row(
-            children: List.generate(20, (index) {
-              final activeThreshold = index / 20.0;
-              final isActive = _loudnessLevel >= activeThreshold;
-
-              Color barColor;
-              if (index > 16) {
-                barColor = AppColors.coral; // Too loud
-              } else if (index > 12) {
-                barColor = AppColors.yellow; // Strong
-              } else {
-                barColor = Colors.greenAccent; // Optimal
-              }
-
-              return Expanded(
-                child: Container(
-                  height: 12,
-                  margin: const EdgeInsets.symmetric(horizontal: 1.5),
-                  decoration: BoxDecoration(
-                    color: isActive
-                        ? barColor
-                        : Colors.white.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ),
-              );
-            }),
-          ),
-        ],
-      ),
+        ),
+      ]),
     );
   }
 }
-

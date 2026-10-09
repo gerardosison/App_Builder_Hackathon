@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:file_picker/file_picker.dart';
 
 import '../../../app/app_router.dart';
 import '../../../app/app_providers.dart';
@@ -30,26 +31,42 @@ class DocumentUploadScreen extends ConsumerStatefulWidget {
 class _DocumentUploadScreenState
     extends ConsumerState<DocumentUploadScreen> {
   String? _fileName;
+  String? _filePath;
   int _targetWpm = 140;
   bool _busy = false;
   bool _unreadable = false;
 
   Future<void> _pickFile() async {
-    // Mock picker — pretend the user chose a file.
-    setState(() => _fileName = 'industrial_revolution_draft.pdf');
+    final result = await FilePicker.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['pdf', 'docx', 'txt'],
+    );
+    final file = result.isEmpty ? null : result.single;
+    if (file?.path == null || !mounted) return;
+    setState(() {
+      _fileName = file!.name;
+      _filePath = file.path;
+      _unreadable = false;
+    });
   }
 
   Future<void> _analyze() async {
-    if (_fileName == null) return;
+    if (_filePath == null) return;
     setState(() => _busy = true);
     try {
       final result =
-          await ref.read(documentServiceProvider).analyze(_fileName!);
+          await ref.read(documentServiceProvider).analyze(_filePath!);
       if (!mounted) return;
       ref.read(lastDocAnalysisProvider.notifier).state = result;
       context.push(AppRoutes.scriptAnalysis);
     } on DocumentUnreadableException {
       if (mounted) setState(() => _unreadable = true);
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Hindi na-analyze ang file: $error')),
+        );
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -154,7 +171,10 @@ class _DocumentUploadScreenState
                         tooltip: 'Remove file',
                         icon: const Icon(Icons.close),
                         onPressed: () =>
-                            setState(() => _fileName = null),
+                            setState(() {
+                              _fileName = null;
+                              _filePath = null;
+                            }),
                       ),
                     ]),
                   ),
