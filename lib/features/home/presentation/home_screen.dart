@@ -617,84 +617,32 @@ class _PracticeTabView extends StatelessWidget {
   final VoidCallback onStart;
 
   @override
-  Widget build(BuildContext context) {
-    return Column(
+  Widget build(BuildContext context) => SizedBox(
+    height: (MediaQuery.sizeOf(context).height - 180).clamp(
+      320.0,
+      double.infinity,
+    ),
+    child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          'Practice Studio',
-          style: Theme.of(context).textTheme.displaySmall,
-        ),
+        Text('Practice', style: Theme.of(context).textTheme.displaySmall),
         const SizedBox(height: 8),
         const Text(
-          'Select a format and start recording your speech session.',
+          'Build your speaking skills with AI-powered coaching and feedback.',
           style: TextStyle(color: AppColors.navySoft),
         ),
-        const SizedBox(height: 28),
-
-        // Mic recording centerpiece
-        Container(
-          padding: const EdgeInsets.all(28),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: AppColors.line),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x0C000000),
-                blurRadius: 18,
-                offset: Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              Container(
-                width: 86,
-                height: 86,
-                decoration: const BoxDecoration(
-                  color: AppColors.blue,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Color(0x404F7CFF),
-                      blurRadius: 20,
-                      spreadRadius: 4,
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.mic_rounded,
-                  size: 44,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'Ready to Record',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'AI real-time coaching will analyze your tempo & clarity.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 13, color: AppColors.navySoft),
-              ),
-              const SizedBox(height: 22),
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton(
-                  onPressed: onStart,
-                  child: const Text('Start Live Practice'),
-                ),
-              ),
-            ],
+        const SizedBox(height: 10),
+        SizedBox(
+          width: double.infinity,
+          height: 52,
+          child: ElevatedButton(
+            onPressed: onStart,
+            child: const Text('Start Live Practice'),
           ),
         ),
       ],
-    );
-  }
+    ),
+  );
 }
 
 // -----------------------------------------------------------------------------
