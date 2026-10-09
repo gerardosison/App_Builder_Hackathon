@@ -1,106 +1,182 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../app/app_router.dart';
+import '../../../app/theme/app_theme.dart';
 import '../../../app/theme/app_colors.dart';
-import '../../auth/presentation/login_screen.dart';
-import '../../practice/presentation/setup_screen.dart';
+import '../../../core/widgets/pip_misc.dart';
 import '../../settings/presentation/settings_screen.dart';
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+class HomeScreen extends StatelessWidget {
+  const HomeScreen({
+    super.key,
+    this.location = AppRoutes.home,
+    this.child,
+  });
 
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
+  final String location;
+  final Widget? child;
 
-class _HomeScreenState extends State<HomeScreen> {
-  int _selected = 0;
+  int get _selectedIndex {
+    if (location.startsWith('/documents')) return 1;
+    if (location.startsWith('/practice')) return 2;
+    if (location == AppRoutes.progress ||
+        location == AppRoutes.history ||
+        location == AppRoutes.rehearsalAnalysis) {
+      return 3;
+    }
+    if (location.startsWith('/profile') ||
+        location.startsWith('/settings') ||
+        location == AppRoutes.about) {
+      return 4;
+    }
+    return 0;
+  }
 
-  final _navItems = const [
-    _NavItem(icon: Icons.home_rounded, label: 'Home'),
-    _NavItem(icon: Icons.insights_rounded, label: 'Progress'),
-    _NavItem(icon: Icons.mic_rounded, label: 'Practice'),
-    _NavItem(icon: Icons.person_rounded, label: 'Profile'),
-    _NavItem(icon: Icons.tune_rounded, label: 'Settings'),
+  static const _destinations = [
+    AppRoutes.home,
+    AppRoutes.documentUpload,
+    AppRoutes.practice,
+    AppRoutes.progress,
+    AppRoutes.profile,
   ];
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: Stack(
-          children: [
-            // Scrollable Content area with bottom padding so floating nav bar does not overlap
-            Positioned.fill(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(24, 20, 24, 120),
-                child: _buildCurrentTab(context),
+  Widget build(BuildContext context) => Scaffold(
+        body: child ?? const HomeLandingScreen(),
+        bottomNavigationBar: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerLowest,
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.7),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .shadow
+                      .withValues(alpha: 0.10),
+                  blurRadius: 18,
+                  offset: const Offset(0, 5),
+                ),
+                const BoxShadow(
+                  color: Color.fromRGBO(255, 255, 255, 0.55),
+                  blurRadius: 2,
+                  offset: Offset(0, 1),
+                ),
+              ],
+            ),
+            child: SafeArea(
+              top: false,
+              child: SizedBox(
+                height: 70,
+                child: Row(
+                  children: [
+                    _destination(context, 0, Icons.home_outlined, 'Home'),
+                    _destination(
+                        context, 1, Icons.description_outlined, 'Documents'),
+                    _destination(context, 2, Icons.mic_rounded, 'Practice'),
+                    _destination(context, 3, Icons.trending_up_rounded, 'Progress'),
+                    _destination(context, 4, Icons.person_outline_rounded, 'Profile'),
+                  ],
+                ),
               ),
             ),
+          ),
+        ),
+      );
 
-            // Bottom-anchored floating rounded navigation bar
-            Positioned(
-              left: 16,
-              right: 16,
-              bottom: 20,
-              child: _FloatingNavBar(
-                items: _navItems,
-                selectedIndex: _selected,
-                onSelected: (index) => setState(() => _selected = index),
-              ),
+  Widget _destination(
+      BuildContext context, int index, IconData icon, String label) {
+    final selected = index == _selectedIndex;
+    final colors = Theme.of(context).colorScheme;
+    if (index == 2) {
+      return Expanded(
+        child: Transform.translate(
+          offset: const Offset(0, -5),
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: () => context.go(_destinations[index]),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  width: 54,
+                  height: 54,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: selected
+                          ? [AppColors.sky, AppColors.secondary]
+                          : [AppColors.primaryContainer, AppColors.navyDeep],
+                    ),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.85),
+                      width: 2,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: (selected ? AppColors.secondary : AppColors.navy)
+                            .withValues(alpha: 0.24),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Icon(icon, color: Colors.white, size: 28),
+                ),
+                Text(label,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          fontSize: 9,
+                          color: selected
+                              ? colors.primary
+                              : colors.onSurfaceVariant,
+                        )),
+              ],
             ),
-          ],
+          ),
+        ),
+      );
+    }
+    return Expanded(
+      child: InkWell(
+        onTap: () => context.go(_destinations[index]),
+        borderRadius: BorderRadius.circular(24),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon,
+                  size: 22,
+                  color: selected ? colors.primary : colors.onSurfaceVariant),
+              const SizedBox(height: 3),
+              Text(label,
+                  maxLines: 1,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: selected ? colors.primary : colors.onSurfaceVariant)),
+            ],
+          ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildCurrentTab(BuildContext context) {
-    late final Widget content;
-    switch (_selected) {
-      case 0:
-        content = const SizedBox.shrink();
-        break;
-      case 1:
-        content = const SizedBox.shrink();
-        break;
-      case 2:
-        content = _PracticeTabView(
-          onStart: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const SetupScreen()),
-            );
-          },
-        );
-        break;
-      case 3:
-        content = const SizedBox.shrink();
-        break;
-      case 4:
-        content = const _SettingsTabView();
-        break;
-      default:
-        content = const SizedBox.shrink();
-    }
+class HomeLandingScreen extends StatelessWidget {
+  const HomeLandingScreen({super.key});
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _HomeHeaderOnly(onLogout: _showLogoutPrompt),
-        if (_selected != 0) const SizedBox(height: 28),
-        content,
-      ],
-    );
-  }
-
-  Future<void> _showLogoutPrompt() async {
-    final shouldLogout = await showGeneralDialog<bool>(
+  Future<void> _confirmLogout(BuildContext context) async {
+    final shouldLogout = await showDialog<bool>(
       context: context,
-      barrierDismissible: true,
-      barrierLabel: 'Close logout confirmation',
-      barrierColor: AppColors.navy.withValues(alpha: 0.45),
-      transitionDuration: const Duration(milliseconds: 260),
-      pageBuilder: (context, animation, secondaryAnimation) => AlertDialog(
+      builder: (context) => AlertDialog(
         title: const Text('Log out?'),
         content: const Text(
           'You can come back anytime and continue your speaking journey.',
@@ -116,240 +192,43 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      transitionBuilder: (context, animation, secondaryAnimation, child) {
-        final curved = CurvedAnimation(
-          parent: animation,
-          curve: Curves.easeOutBack,
-        );
-        return FadeTransition(
-          opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
-          child: ScaleTransition(scale: curved, child: child),
-        );
-      },
     );
-
-    if (shouldLogout == true && mounted) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-        (route) => false,
-      );
-    }
+    if (shouldLogout == true && context.mounted) context.go(AppRoutes.login);
   }
-}
-
-class _NavItem {
-  const _NavItem({required this.icon, required this.label});
-  final IconData icon;
-  final String label;
-}
-
-class _HomeHeaderOnly extends StatelessWidget {
-  const _HomeHeaderOnly({required this.onLogout});
-  final VoidCallback onLogout;
 
   @override
-  Widget build(BuildContext context) => Row(
-    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    children: [
-      Text(
-        'VOICE MATE',
-        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-          letterSpacing: 1.8,
-          fontWeight: FontWeight.w900,
-        ),
-      ),
-      IconButton(
-        onPressed: onLogout,
-        tooltip: 'Log out',
-        style: IconButton.styleFrom(
-          foregroundColor: AppColors.navy,
-          backgroundColor: AppColors.sky,
-        ),
-        icon: const Icon(Icons.logout_rounded, size: 20),
-      ),
-    ],
-  );
-}
-
-/// Bottom-anchored floating rounded navigation bar
-class _FloatingNavBar extends StatelessWidget {
-  const _FloatingNavBar({
-    required this.items,
-    required this.selectedIndex,
-    required this.onSelected,
-  });
-
-  final List<_NavItem> items;
-  final int selectedIndex;
-  final ValueChanged<int> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      clipBehavior: Clip.none,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: AppColors.line, width: 1.5),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x2214213D),
-            blurRadius: 20,
-            spreadRadius: 1,
-            offset: Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: List.generate(items.length, (index) {
-          final item = items[index];
-          final isSelected = selectedIndex == index;
-          final isPractice = index == 2; // Middle item: Practice
-
-          if (isPractice) {
-            // Reserve the same horizontal slot as the other items, then lift
-            // the large control above the bar without changing its layout.
-            return Expanded(
-              child: Transform.translate(
-                offset: const Offset(0, 0),
-                child: GestureDetector(
-                  onTap: () => onSelected(index),
-                  behavior: HitTestBehavior.opaque,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 64,
-                        height: 64,
-                        decoration: BoxDecoration(
-                          color: isSelected ? AppColors.blue : AppColors.navy,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 3),
-                          boxShadow: [
-                            BoxShadow(
-                              color:
-                                  (isSelected ? AppColors.blue : AppColors.navy)
-                                      .withValues(alpha: 0.35),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Icon(item.icon, color: Colors.white, size: 34),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          }
-
-          // Other 4 navigation items: Home, Progress, Profile, Settings
-          return Expanded(
-            child: GestureDetector(
-              onTap: () => onSelected(index),
-              behavior: HitTestBehavior.opaque,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: isSelected ? AppColors.sky : Colors.transparent,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Icon(
-                      item.icon,
-                      size: 22,
-                      color: isSelected ? AppColors.navy : AppColors.navySoft,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    item.label,
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: isSelected
-                          ? FontWeight.w800
-                          : FontWeight.w500,
-                      color: isSelected ? AppColors.navy : AppColors.navySoft,
-                    ),
-                  ),
-                ],
-              ),
+  Widget build(BuildContext context) => Scaffold(
+        appBar: pipAppBar(
+          context,
+          title: 'PipSpeak',
+          showBack: false,
+          actions: [
+            IconButton(
+              tooltip: 'Log out',
+              onPressed: () => _confirmLogout(context),
+              icon: const Icon(Icons.logout_rounded),
             ),
-          );
-        }),
-      ),
-    );
-  }
+          ],
+        ),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+            child: const _HomeTabView(),
+          ),
+        ),
+      );
 }
-
 // -----------------------------------------------------------------------------
 // TAB 0: HOME
 // -----------------------------------------------------------------------------
 class _HomeTabView extends StatelessWidget {
-  const _HomeTabView({required this.onLogout});
-  final VoidCallback onLogout;
+  const _HomeTabView();
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'VOICE MATE',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                letterSpacing: 1.8,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.yellow,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.navy, width: 1.2),
-                  ),
-                  child: const Row(
-                    children: [
-                      Text(
-                        '7 DAYS',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 11,
-                          color: AppColors.navy,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  onPressed: onLogout,
-                  tooltip: 'Log out',
-                  style: IconButton.styleFrom(
-                    foregroundColor: AppColors.navy,
-                    backgroundColor: AppColors.sky,
-                  ),
-                  icon: const Icon(Icons.logout_rounded, size: 20),
-                ),
-              ],
-            ),
-          ],
-        ),
-        const SizedBox(height: 28),
         Text(
           'Good morning, speaker!',
           style: Theme.of(context).textTheme.displaySmall,

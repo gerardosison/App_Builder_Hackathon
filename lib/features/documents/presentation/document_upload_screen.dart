@@ -43,8 +43,6 @@ class _DocumentUploadScreenState
     if (_fileName == null) return;
     setState(() => _busy = true);
     try {
-      final simulateError = ref.read(simulateUnreadableDocProvider);
-      if (simulateError) throw DocumentUnreadableException();
       final result =
           await ref.read(documentServiceProvider).analyze(_fileName!);
       if (!mounted) return;
@@ -75,15 +73,6 @@ class _DocumentUploadScreenState
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
               children: [
-                const CoachTipCard(
-                  label: 'Smart setup',
-                  icon: Icons.auto_awesome,
-                  message:
-                      'Drop your draft and Pip will check structure, '
-                      'readability and pacing before you rehearse.',
-                ),
-                const SizedBox(height: 16),
-
                 // Dashed drop zone
                 Semantics(
                   button: true,
@@ -228,26 +217,6 @@ class _DocumentUploadScreenState
                   onPressed:
                       (_fileName == null || _busy) ? null : _analyze,
                 ),
-                const SizedBox(height: 10),
-                // Demo toggle for the error path
-                Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Text('Simulate unreadable file (mock)',
-                      style: text.bodySmall
-                          ?.copyWith(color: scheme.outline)),
-                  Switch(
-                    value: ref.watch(simulateUnreadableDocProvider),
-                    onChanged: (v) => ref
-                        .read(simulateUnreadableDocProvider.notifier)
-                        .state = v,
-                  ),
-                ]),
-                const SizedBox(height: 4),
-                Text(
-                  'Files are parsed locally — nothing is uploaded.',
-                  textAlign: TextAlign.center,
-                  style: text.labelSmall
-                      ?.copyWith(color: scheme.outline),
-                ),
               ],
             ),
           ),
@@ -324,8 +293,6 @@ class _DocumentUploadScreenState
           label: 'Choose another file',
           icon: Icons.upload_file,
           onPressed: () {
-            ref.read(simulateUnreadableDocProvider.notifier).state =
-                false;
             setState(() {
               _unreadable = false;
               _fileName = null;

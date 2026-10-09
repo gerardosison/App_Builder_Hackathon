@@ -59,15 +59,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
               children: [
-                const CoachTipCard(
-                  label: 'Coach Pip',
-                  icon: Icons.auto_awesome,
-                  message:
-                      'A friendly name helps me cheer for you by name '
-                      'after every take!',
-                ),
-                const SizedBox(height: 16),
-
                 // Avatar
                 Center(
                   child: Stack(children: [
@@ -141,46 +132,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   ]),
                 ),
                 const SizedBox(height: 16),
-
-                // Streak & sync cards
-                Row(children: [
-                  Expanded(
-                    child: PipCard(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(children: [
-                        const Icon(Icons.local_fire_department,
-                            color: AppColors.amber, size: 28),
-                        const SizedBox(height: 6),
-                        Text('${user.streakDays}-day',
-                            style: text.labelLarge
-                                ?.copyWith(color: scheme.primary)),
-                        Text('Streak',
-                            style: text.bodySmall?.copyWith(
-                                color: scheme.onSurfaceVariant)),
-                      ]),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: PipCard(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(children: [
-                        const Icon(Icons.sync,
-                            color: AppColors.secondary, size: 28),
-                        const SizedBox(height: 6),
-                        Text(user.school,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: text.labelLarge
-                                ?.copyWith(color: scheme.primary)),
-                        Text('Student sync',
-                            style: text.bodySmall?.copyWith(
-                                color: scheme.onSurfaceVariant)),
-                      ]),
-                    ),
-                  ),
-                ]),
-                const SizedBox(height: 20),
 
                 PrimaryButton(
                   label: 'Save Changes',

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../core/widgets/pip_misc.dart';
 import 'practice_screen.dart';
 import 'widgets/camera_preview.dart';
 
@@ -38,72 +39,13 @@ class _SetupScreenState extends State<SetupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Setup Video & Mic',
-          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
-        ),
-        centerTitle: true,
-      ),
+      appBar: pipAppBar(context, title: 'Practice Setup'),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(24, 12, 24, 28),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Topic Banner
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.sky,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppColors.navy, width: 1.5),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: const BoxDecoration(
-                        color: AppColors.yellow,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.record_voice_over_rounded,
-                        color: AppColors.navy,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'CURRENT SPEECH TOPIC',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.blue,
-                              letterSpacing: 0.8,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            widget.speechTopic,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.navy,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-
               // Step 1 Guide text
               const Text(
                 'Step 1: Video & Mic Setup',

@@ -8,8 +8,8 @@ import '../../feedback/presentation/feedback_screen.dart';
 class ProcessingScreen extends StatefulWidget {
   const ProcessingScreen({
     super.key,
-    required this.speechTopic,
-    required this.durationSeconds,
+    this.speechTopic = 'Tell a story in 60 seconds',
+    this.durationSeconds = 64,
   });
 
   final String speechTopic;
@@ -114,7 +114,7 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
               ),
               const SizedBox(height: 10),
               const Text(
-                'Voice Mate AI is processing speech delivery and body language metrics behind the scenes.',
+                'PipSpeak is processing speech delivery and body language metrics behind the scenes.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,
@@ -220,4 +220,5 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
     );
   }
 }
+
 

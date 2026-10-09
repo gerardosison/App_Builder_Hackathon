@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../core/widgets/pip_misc.dart';
 import 'transcript_review_screen.dart';
 import 'widgets/pose_feedback_card.dart';
 import 'widgets/speech_metric_card.dart';
@@ -18,13 +19,7 @@ class FeedbackScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Speech & Body Feedback',
-          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
-        ),
-        centerTitle: true,
-      ),
+      appBar: pipAppBar(context, title: 'Speech & Body Feedback'),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(24, 12, 24, 28),

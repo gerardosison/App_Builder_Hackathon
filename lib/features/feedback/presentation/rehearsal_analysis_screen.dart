@@ -142,14 +142,6 @@ class _RehearsalAnalysisScreenState
                       '${session.paceScore}/100', AppColors.tertiaryFixed,
                       session.paceScore > 75 ? 'Smooth' : 'Work on flow'),
                 ] else ...[
-                  const CoachTipCard(
-                    label: 'Topic coverage',
-                    icon: Icons.topic,
-                    message:
-                        'You covered the intro & key evidence well. '
-                        'The conclusion felt rushed — add a callback to your opening hook.',
-                  ),
-                  const SizedBox(height: 12),
                   _sectionRow('Introduction', 90, 'Strong hook landed'),
                   _sectionRow('Body / Evidence', 76, 'Add one more example'),
                   _sectionRow('Conclusion', 62, 'Rushed — slow down & land it'),

@@ -1,17 +1,26 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../core/widgets/pip_misc.dart';
 import '../../home/presentation/home_screen.dart';
 
 class PersonalizationScreen extends StatefulWidget {
-  const PersonalizationScreen({super.key});
+  const PersonalizationScreen({super.key, this.initialStep = 0});
+
+  final int initialStep;
 
   @override
   State<PersonalizationScreen> createState() => _PersonalizationScreenState();
 }
 
 class _PersonalizationScreenState extends State<PersonalizationScreen> {
-  int _page = 0;
+  late int _page;
+
+  @override
+  void initState() {
+    super.initState();
+    _page = widget.initialStep.clamp(0, 1).toInt();
+  }
 
   // Page 1: Language selection (with Flag Icon & Flag Name)
   String _selectedLanguage = '🇺🇸 English (US)';
@@ -150,25 +159,11 @@ class _PersonalizationScreenState extends State<PersonalizationScreen> {
     final isLanguagePage = _page == 0;
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: _page > 0
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back_rounded),
-                onPressed: _previous,
-                tooltip: 'Back',
-              )
-            : null,
-        title: Text(
-          'Preference ${_page + 1} of 2',
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-            color: AppColors.blue,
-          ),
-        ),
-        centerTitle: true,
+      appBar: pipAppBar(
+        context,
+        title: 'Preference ${_page + 1} of 2',
+        showBack: _page > 0,
+        onBack: _previous,
       ),
       body: SafeArea(
         child: Padding(

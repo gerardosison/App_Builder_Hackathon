@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../core/widgets/pip_misc.dart';
 import 'personalization_screen.dart';
 
 class TourScreen extends StatefulWidget {
@@ -71,11 +72,11 @@ class _TourScreenState extends State<TourScreen> {
       icon: Icons.tune_rounded,
       tagline: 'Customization, privacy & app information',
       function:
-          'Fine-tune microphone inputs, toggle dark mode, and learn about the Voice Mate mission in the About Section.',
+          'Fine-tune microphone inputs, toggle dark mode, and learn about the PipSpeak mission in the About Section.',
       features: [
         'Dark mode and visual appearance controls',
         'Microphone sensitivity calibration and privacy controls',
-        'About Section detailing Voice Mate story, version & mission',
+        'About Section detailing PipSpeak story, version & mission',
       ],
       previewType: _PreviewType.settings,
     ),
@@ -103,25 +104,11 @@ class _TourScreenState extends State<TourScreen> {
     final currentPage = _pages[_page];
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: _page > 0
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back_rounded),
-                onPressed: _previous,
-                tooltip: 'Previous preview',
-              )
-            : null,
-        title: Text(
-          'Preview ${_page + 1} of ${_pages.length}',
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-            color: AppColors.blue,
-          ),
-        ),
-        centerTitle: true,
+      appBar: pipAppBar(
+        context,
+        title: 'Preview ${_page + 1} of ${_pages.length}',
+        showBack: _page > 0,
+        onBack: _previous,
         actions: [
           TextButton(
             onPressed: () => Navigator.pushReplacement(
@@ -398,7 +385,7 @@ class _HomePreview extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
-              'Voice Mate • Home',
+              'PipSpeak • Home',
               style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
             ),
             Tooltip(
@@ -815,7 +802,7 @@ class _SettingsPreview extends StatelessWidget {
                     ),
                     SizedBox(width: 6),
                     Text(
-                      'About Voice Mate Section',
+                      'About PipSpeak Section',
                       style: TextStyle(
                         fontWeight: FontWeight.w800,
                         fontSize: 12,

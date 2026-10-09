@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../core/widgets/pip_misc.dart';
 import '../../home/presentation/home_screen.dart';
 import 'widgets/coaching_tip_card.dart';
 
 class TranscriptReviewScreen extends StatefulWidget {
   const TranscriptReviewScreen({
     super.key,
-    required this.speechTopic,
-    required this.durationSeconds,
+    this.speechTopic = 'Tell a story in 60 seconds',
+    this.durationSeconds = 64,
   });
 
   final String speechTopic;
@@ -151,13 +152,7 @@ class _TranscriptReviewScreenState extends State<TranscriptReviewScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Transcript & AI Tips',
-          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
-        ),
-        centerTitle: true,
-      ),
+      appBar: pipAppBar(context, title: 'Transcript & AI Tips'),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(24, 12, 24, 28),

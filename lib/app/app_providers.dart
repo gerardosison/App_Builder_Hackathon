@@ -24,7 +24,12 @@ export '../features/progress/providers/progress_provider.dart';
 export '../features/profile/providers/profile_provider.dart';
 
 // ------------------------------------------------------------------ Theme
-final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.light);
+final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.system);
+
+enum PermissionState { notSet, granted, denied }
+
+final permissionStateProvider =
+    StateProvider<PermissionState>((ref) => PermissionState.notSet);
 
 // --------------------------------------------------------------- Services
 // Swap these mock implementations for real backends; the UI only knows

@@ -1,4 +1,7 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/models/feedback_report.dart';
 
 /// Feedback summary model
 class SessionFeedbackData {
@@ -33,4 +36,7 @@ class FeedbackProvider extends ChangeNotifier {
 }
 
 final feedbackProvider = FeedbackProvider();
+
+/// Most recently completed analysis shared by feedback, progress and rewards.
+final lastReportProvider = StateProvider<FeedbackReport?>((ref) => null);
 

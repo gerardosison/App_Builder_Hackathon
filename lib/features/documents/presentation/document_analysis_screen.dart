@@ -88,15 +88,6 @@ class ScriptAnalysisScreen extends ConsumerWidget {
                   ]),
                 ),
                 const SizedBox(height: 12),
-                const CoachTipCard(
-                  label: "Pip's read",
-                  icon: Icons.auto_awesome,
-                  message:
-                      'Solid draft! Your structure is clear — polish '
-                      'the ending and you\'re stage-ready.',
-                ),
-                const SizedBox(height: 16),
-
                 const SectionHeader(title: 'Section scores'),
                 const SizedBox(height: 8),
                 for (final s in doc.sections)

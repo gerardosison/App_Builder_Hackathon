@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../app/app_router.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../core/widgets/pip_buttons.dart';
@@ -98,7 +99,7 @@ class PermissionDeniedView extends StatelessWidget {
                   label: 'Rehearse with teleprompter only',
                   icon: Icons.subtitles,
                   onPressed: () =>
-                      context.pushReplacement('/practice/live')),
+                      context.pushReplacement(AppRoutes.practiceLive)),
               const SizedBox(height: 4),
               PipGhostButton(
                   label: 'Back to setup',

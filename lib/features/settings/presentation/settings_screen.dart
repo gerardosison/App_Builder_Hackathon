@@ -20,7 +20,6 @@ class SettingsScreen extends ConsumerWidget {
     final text = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
     final themeMode = ref.watch(themeModeProvider);
-    final permission = ref.watch(permissionStateProvider);
 
     return Scaffold(
       appBar: pipAppBar(context,
@@ -35,15 +34,6 @@ class SettingsScreen extends ConsumerWidget {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
               children: [
-                const CoachTipCard(
-                  label: 'Coach Pip',
-                  icon: Icons.auto_awesome,
-                  message:
-                      'Pip calibrates to your preferences. Changes apply '
-                      'instantly across practice rooms.',
-                ),
-                const SizedBox(height: 20),
-
                 const _Label('PREFERENCES'),
                 PipCard(
                   child: Column(
@@ -117,13 +107,6 @@ class SettingsScreen extends ConsumerWidget {
                       value: true,
                       onChanged: (_) {},
                     ),
-                    Divider(color: scheme.surfaceContainerHigh),
-                    _navRow(context, Icons.mic, 'Camera & Mic Permissions',
-                        'Live posture & audio feedback',
-                        value: permission == PermissionState.granted
-                            ? 'Granted'
-                            : 'Not set',
-                        onTap: () => context.push(AppRoutes.practiceDenied)),
                   ]),
                 ),
                 const SizedBox(height: 16),
@@ -133,28 +116,6 @@ class SettingsScreen extends ConsumerWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                   child: Column(children: [
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      secondary: const IconDisc(
-                          icon: Icons.security, size: 36),
-                      title: Wrap(spacing: 8, children: [
-                        Text('Privacy First',
-                            style: text.labelLarge
-                                ?.copyWith(color: scheme.onSurface)),
-                        const MintBadge(
-                            label: '100% On-Device',
-                            icon: Icons.lock),
-                      ]),
-                      subtitle: Text(
-                        'Audio and video analyzed locally. Rehearsals '
-                        'are never uploaded to cloud servers.',
-                        style: text.bodySmall?.copyWith(
-                            color: scheme.onSurfaceVariant),
-                      ),
-                      value: true,
-                      onChanged: (_) {},
-                    ),
-                    Divider(color: scheme.surfaceContainerHigh),
                     _navRow(context, Icons.history_toggle_off,
                         'Recording Cache',
                         'Auto-clears local practice recordings',

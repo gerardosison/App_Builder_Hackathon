@@ -5,12 +5,13 @@ import 'package:go_router/go_router.dart';
 import '../../../app/app_router.dart';
 import '../../../app/app_providers.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../core/widgets/pip_misc.dart';
 import '../../../features/auth/services/local_auth_service.dart';
 import '../../../core/widgets/pip_cards.dart';
 import '../../../core/widgets/pip_chips.dart';
 import 'widgets/delete_account_dialog.dart';
 
-/// Profile tab — hero card, Pip insight, stats, account & preference
+/// Profile tab — hero card, stats, account & preference
 /// rows, logout / delete (Stitch `profile_tab`).
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -22,6 +23,18 @@ class ProfileScreen extends ConsumerWidget {
     final user = ref.watch(currentUserProvider) ?? LocalAuthService.mockUser;
 
     return Scaffold(
+      appBar: pipAppBar(
+        context,
+        title: 'Profile',
+        showBack: false,
+        actions: [
+          IconButton(
+            tooltip: 'Settings',
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => context.push(AppRoutes.settings),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Align(
           alignment: Alignment.topCenter,
@@ -30,23 +43,6 @@ class ProfileScreen extends ConsumerWidget {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
               children: [
-                Row(children: [
-                  Expanded(
-                    child: Text('Profile',
-                        style: text.headlineMedium
-                            ?.copyWith(color: scheme.primary)),
-                  ),
-                  IconButton(
-                    tooltip: 'Settings',
-                    icon:
-                        Icon(Icons.settings_outlined, color: scheme.primary),
-                    style: IconButton.styleFrom(
-                        minimumSize: const Size(48, 48)),
-                    onPressed: () => context.push(AppRoutes.settings),
-                  ),
-                ]),
-                const SizedBox(height: 8),
-
                 // Hero card
                 PipCard(
                   child: Column(children: [
@@ -89,9 +85,6 @@ class ProfileScreen extends ConsumerWidget {
                                 StarChip(
                                     label:
                                         'Lv ${user.level} Orator'),
-                                SkyBadge(
-                                    label: user.school,
-                                    icon: Icons.school_outlined),
                               ]),
                             ]),
                       ),
@@ -116,16 +109,6 @@ class ProfileScreen extends ConsumerWidget {
                   ]),
                 ),
                 const SizedBox(height: 12),
-
-                // Pip insight banner
-                const CoachTipCard(
-                  label: "Pip's insight",
-                  icon: Icons.auto_awesome,
-                  message:
-                      'Your pace is steadying — 3 sessions in a row '
-                      'inside the classroom sweet spot. Keep it up!',
-                ),
-                const SizedBox(height: 20),
 
                 const _SectionLabel('ACCOUNT'),
                 PipCard(
@@ -153,22 +136,10 @@ class ProfileScreen extends ConsumerWidget {
                     _row(context, Icons.shield_outlined, 'Privacy & Data',
                         'On-device processing & retention',
                         onTap: () => context.push(AppRoutes.privacy)),
-                    _row(context, Icons.info_outline, 'About PipSpeak',
-                        'Version, team & credits',
-                        onTap: () => context.push(AppRoutes.about)),
                   ]),
                 ),
                 const SizedBox(height: 24),
 
-                OutlinedButton.icon(
-                  onPressed: () {
-                    ref.read(currentUserProvider.notifier).state = null;
-                    context.go(AppRoutes.login);
-                  },
-                  icon: const Icon(Icons.logout),
-                  label: const Text('Log Out'),
-                ),
-                const SizedBox(height: 8),
                 TextButton.icon(
                   onPressed: () => showDeleteAccountDialog(context, ref),
                   icon: Icon(Icons.delete_forever,

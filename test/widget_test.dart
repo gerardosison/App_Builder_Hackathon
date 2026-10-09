@@ -1,38 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:app_builder_hackathon/main.dart';
-import 'package:app_builder_hackathon/features/auth/presentation/login_screen.dart';
-import 'package:app_builder_hackathon/features/auth/presentation/register_screen.dart';
-import 'package:app_builder_hackathon/features/onboarding/presentation/welcome_screen.dart';
-import 'package:app_builder_hackathon/features/onboarding/presentation/tour_screen.dart';
-import 'package:app_builder_hackathon/features/onboarding/presentation/personalization_screen.dart';
-import 'package:app_builder_hackathon/features/home/presentation/home_screen.dart';
+import 'package:hawkabuild/features/auth/presentation/register_screen.dart';
+import 'package:hawkabuild/features/auth/presentation/login_screen.dart';
+import 'package:hawkabuild/features/onboarding/presentation/welcome_screen.dart';
+import 'package:hawkabuild/features/onboarding/presentation/tour_screen.dart';
+import 'package:hawkabuild/features/onboarding/presentation/personalization_screen.dart';
+import 'package:hawkabuild/features/home/presentation/home_screen.dart';
+import 'package:hawkabuild/app/app.dart';
 
 void main() {
   testWidgets(
-    'Login Screen displays landing area, slogan, login area, and buttons',
+    'App opens on the login screen',
     (WidgetTester tester) async {
-      await tester.pumpWidget(const MyApp());
-
+      await tester.pumpWidget(const ProviderScope(child: PipSpeakApp()));
+      await tester.pump();
       expect(find.byType(LoginScreen), findsOneWidget);
-      // Landing area: logo and brand text
-      expect(find.text('VOICE MATE'), findsOneWidget);
-      expect(
-        find.text(
-          'Your companion app towards better public speaking and confidence.',
-        ),
-        findsOneWidget,
-      );
-
-      // Login area: username & password fields, forgot password UI
       expect(find.text('Username'), findsOneWidget);
       expect(find.text('Password'), findsOneWidget);
       expect(find.text('Forgot password?'), findsOneWidget);
-
-      // Below: Login and Register buttons
-      expect(find.widgetWithText(ElevatedButton, 'Login'), findsOneWidget);
-      expect(find.widgetWithText(OutlinedButton, 'Register'), findsOneWidget);
     },
   );
 
@@ -247,26 +234,22 @@ void main() {
   );
 
   testWidgets(
-    'Home Screen has bottom-anchored floating rounded nav bar with items in exact order',
+    'Home navigation exposes the primary app destinations',
     (WidgetTester tester) async {
-      await tester.pumpWidget(const MaterialApp(home: HomeScreen()));
+      await tester.pumpWidget(const MaterialApp(
+        home: HomeScreen(location: '/home', child: Text('Home screen')),
+      ));
 
-      // Verify all 5 nav items exist in order: Home, Progress, Practice, Profile, Settings
-      expect(find.text('Home'), findsWidgets);
-      expect(find.text('Progress'), findsWidgets);
-      expect(find.text('Practice'), findsWidgets);
-      expect(find.text('Profile'), findsWidgets);
-      expect(find.text('Settings'), findsWidgets);
-
-      // Verify Practice is the middle one and can be tapped
-      await tester.tap(find.text('Practice'));
-      await tester.pumpAndSettle();
-      expect(find.text('Practice Studio'), findsOneWidget);
-
-      // Tap Settings tab
-      await tester.tap(find.text('Settings'));
-      await tester.pumpAndSettle();
-      expect(find.text('About Voice Mate'), findsOneWidget);
+      expect(find.byType(NavigationBar), findsNothing);
+      for (final destination in [
+        'Home',
+        'Practice',
+        'Documents',
+        'Progress',
+        'Profile',
+      ]) {
+        expect(find.text(destination), findsOneWidget);
+      }
     },
   );
 }

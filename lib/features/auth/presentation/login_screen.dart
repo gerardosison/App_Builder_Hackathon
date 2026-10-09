@@ -71,7 +71,7 @@ class _LoginScreenState extends State<LoginScreen> {
               decoration: const InputDecoration(
                 labelText: 'Username or Email',
                 prefixIcon: Icon(Icons.mail_outline_rounded),
-                hintText: 'e.g. speaker@voicemate.app',
+                hintText: 'e.g. speaker@pipspeak.app',
               ),
             ),
           ],
@@ -300,7 +300,7 @@ class _LandingHero extends StatelessWidget {
       ),
       const SizedBox(height: 8),
       Text(
-        'VOICE MATE',
+        'PipSpeak',
         textAlign: TextAlign.center,
         style: Theme.of(context).textTheme.titleLarge?.copyWith(
           letterSpacing: 2.0,

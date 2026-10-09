@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../core/widgets/pip_misc.dart';
 import '../../onboarding/presentation/welcome_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -22,7 +23,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscurePassword = true;
 
   // Reserved usernames to demonstrate uniqueness check
-  static const _takenUsernames = {'admin', 'speaker', 'user', 'test', 'voicemate'};
+  static const _takenUsernames = {'admin', 'speaker', 'user', 'test', 'pipspeak'};
 
   @override
   void dispose() {
@@ -224,29 +225,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
         await _confirmExit();
       },
       child: Scaffold(
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_rounded),
-            onPressed: _previous,
-            tooltip: 'Back',
-          ),
+        appBar: pipAppBar(
+          context,
+          title: 'Step ${_step + 1} of 3',
+          onBack: _previous,
           actions: [
             TextButton(
               onPressed: _confirmExit,
               child: const Text('Cancel'),
             ),
           ],
-          title: Text(
-            'Step ${_step + 1} of 3',
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: AppColors.blue,
-            ),
-          ),
-          centerTitle: true,
         ),
         body: SafeArea(
           child: Center(
@@ -356,7 +344,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             SizedBox(width: 10),
                             Expanded(
                               child: Text(
-                                'This is how Voice Mate will warmly address you throughout your speech journey.',
+                                'This is how PipSpeak will warmly address you throughout your speech journey.',
                                 style: TextStyle(fontSize: 12, color: AppColors.navySoft),
                               ),
                             ),

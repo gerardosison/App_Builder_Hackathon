@@ -35,6 +35,15 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
     final history = ref.watch(sessionHistoryProvider);
 
     return Scaffold(
+      appBar: pipAppBar(
+        context,
+        title: 'Progress',
+        showBack: false,
+        actions: [Padding(
+          padding: const EdgeInsets.only(right: 12),
+          child: StarChip(label: '${user.stars}'),
+        )],
+      ),
       body: SafeArea(
         child: Align(
           alignment: Alignment.topCenter,
@@ -43,17 +52,6 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
               children: [
-                // Header
-                Row(children: [
-                  Expanded(
-                    child: Text('Your Progress',
-                        style: text.headlineMedium
-                            ?.copyWith(color: scheme.primary)),
-                  ),
-                  StarChip(label: '${user.stars}'),
-                ]),
-                const SizedBox(height: 14),
-
                 // Segmented Growth / Milestones
                 Container(
                   padding: const EdgeInsets.all(4),
@@ -72,7 +70,7 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
                 if (_view == 0)
                   _growthView(user, history, text, scheme)
                 else
-                  _milestonesView(user, history, text, scheme),
+                  _milestonesView(user, text, scheme),
               ],
             ),
           ),
@@ -164,57 +162,6 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
       ),
       const SizedBox(height: 16),
 
-      // Pace chart (mock bars over the week)
-      PipCard(
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Speaking pace this week',
-              style: text.labelLarge?.copyWith(color: scheme.onSurface)),
-          const SizedBox(height: 4),
-          Text('Sweet spot: 130–150 wpm',
-              style: text.bodySmall
-                  ?.copyWith(color: scheme.onSurfaceVariant)),
-          const SizedBox(height: 14),
-          SizedBox(
-            height: 110,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                for (final (i, wpm) in [132, 168, 151, 142, 138, 0, 0].indexed)
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 400),
-                            height: wpm == 0 ? 8 : (wpm / 180) * 80,
-                            decoration: BoxDecoration(
-                              color: wpm == 0
-                                  ? scheme.surfaceContainerHigh
-                                  : (wpm <= 150
-                                      ? AppColors.tertiaryFixed
-                                      : AppColors.secondaryFixed),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            ['M', 'T', 'W', 'T', 'F', 'S', 'S'][i],
-                            style: text.labelSmall?.copyWith(
-                                color: scheme.onSurfaceVariant),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ]),
-      ),
-      const SizedBox(height: 16),
-
       // Badges
       const SectionHeader(title: 'Achievements'),
       const SizedBox(height: 8),
@@ -228,10 +175,7 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
       ]),
       const SizedBox(height: 16),
 
-      SectionHeader(
-          title: 'Recent practice',
-          action: 'View All',
-          onAction: () => context.push(AppRoutes.history)),
+      const SectionHeader(title: 'Recent practice'),
       const SizedBox(height: 8),
       for (final s in history.take(2))
         Padding(
@@ -242,8 +186,7 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
   }
 
   // ------------------------------------------------- progress_growth_1
-  Widget _milestonesView(UserProfile user, List<PracticeSession> history,
-      TextTheme text, ColorScheme scheme) {
+  Widget _milestonesView(UserProfile user, TextTheme text, ColorScheme scheme) {
     final milestones = [
       ('First rehearsal', 'Complete your first practice', true),
       ('Earn a star', 'Improve on a previous speech', user.stars > 0),
@@ -328,20 +271,6 @@ class _ProgressScreenState extends ConsumerState<ProgressScreen> {
             ]),
           ),
         ),
-      const SizedBox(height: 8),
-      const SectionHeader(title: 'Session history'),
-      const SizedBox(height: 8),
-      if (history.isEmpty)
-        const PipEmptyState(
-            title: 'No sessions yet',
-            message: 'Your first rehearsal will appear here.',
-            asset: PipAsset.pacing)
-      else
-        for (final s in history)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: _historyCard(s, text, scheme),
-          ),
     ]);
   }
 

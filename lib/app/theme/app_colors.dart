@@ -22,6 +22,16 @@ abstract final class AppColors {
   static const Color gold = Color(0xFFFFD166);
   static const Color amber = Color(0xFFF5A623);
 
+  // Compatibility names used by screens introduced in the frontend merge.
+  // They intentionally map to the same brand palette above.
+  static const Color ink = onSurface;
+  static const Color paper = canvas;
+  static const Color line = outlineVariant;
+  static const Color blue = primaryContainer;
+  static const Color coral = error;
+  static const Color yellow = gold;
+  static const Color navySoft = onSurfaceVariant;
+
   // ------------------------------------------------- M3 palette (light)
   static const Color primary = navyDeep;
   static const Color onPrimary = Color(0xFFFFFFFF);
@@ -102,19 +112,4 @@ abstract final class AppColors {
                 offset: Offset(0, 4)),
           ],
       };
-}
-
-import 'package:flutter/material.dart';
-
-abstract final class AppColors {
-  static const navy = Color(0xFF14213D);
-  static const navySoft = Color(0xFF243B64);
-  static const blue = Color(0xFF4F7CFF);
-  static const sky = Color(0xFFDDE9FF);
-  static const mint = Color(0xFFBFE8D5);
-  static const coral = Color(0xFFFF866F);
-  static const yellow = Color(0xFFFFD166);
-  static const ink = Color(0xFF17243D);
-  static const paper = Color(0xFFF8F9FC);
-  static const line = Color(0xFFDDE3EF);
 }

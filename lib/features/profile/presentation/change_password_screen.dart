@@ -22,14 +22,6 @@ class ChangePasswordScreen extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
               children: [
-                const CoachTipCard(
-                  label: 'Security tip',
-                  icon: Icons.lock,
-                  message:
-                      'Use a passphrase — a short sentence is easier '
-                      'to remember and harder to guess.',
-                ),
-                const SizedBox(height: 16),
                 PipCard(
                   child: Column(children: [
                     const PipTextField(

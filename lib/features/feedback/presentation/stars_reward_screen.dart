@@ -57,8 +57,7 @@ class _StarsRewardScreenState extends ConsumerState<StarsRewardScreen>
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final report = ref.watch(lastReportProvider);
-    final user =
-        ref.watch(currentUserProvider) ?? _fallbackUser(ref);
+    final user = ref.watch(currentUserProvider) ?? _fallbackUser;
     final stars = report?.starsEarned ?? 3;
     final needed = LevelProgress.starsNeeded(user.level);
 
@@ -236,7 +235,7 @@ class _StarsRewardScreenState extends ConsumerState<StarsRewardScreen>
     );
   }
 
-  UserProfile _fallbackUser(WidgetRef ref) => const UserProfile(
+  UserProfile get _fallbackUser => const UserProfile(
       name: 'Maya Chen',
       nickname: 'OratorMaya',
       email: 'maya.chen@school.edu',
@@ -286,31 +285,6 @@ class KeepGoingScreen extends ConsumerWidget {
                     ?.copyWith(color: scheme.onSurfaceVariant),
               ),
               const SizedBox(height: 20),
-              Container(
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: AppColors.secondaryFixed.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(AppTheme.cardRadius),
-                  border: Border.all(color: AppColors.secondaryFixed),
-                ),
-                child: Column(children: [
-                  Text('COACH PIP SAYS',
-                      style: text.labelMedium?.copyWith(
-                          color: AppColors.secondary,
-                          letterSpacing: 1.2,
-                          fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 6),
-                  Text(
-                    '“Stars come from improvement, not perfection. '
-                    'One more take — slow down on the middle section — '
-                    'and they\'re yours.”',
-                    textAlign: TextAlign.center,
-                    style: text.bodyMedium?.copyWith(
-                        color: AppColors.onSecondaryFixedVariant,
-                        fontStyle: FontStyle.italic),
-                  ),
-                ]),
-              ),
               const SizedBox(height: 24),
               PrimaryButton(
                   label: 'Try again now',

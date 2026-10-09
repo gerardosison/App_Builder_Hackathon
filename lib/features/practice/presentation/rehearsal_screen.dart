@@ -93,7 +93,15 @@ class _RehearsalScreenState extends State<RehearsalScreen>
               child: Stack(children: [
                 Positioned.fill(
                     child:
-                        CameraPreviewPlaceholder(cameraOn: _cameraOn)),
+                    const Center(
+                      child: Text(
+                        'Camera Preview',
+                        style: TextStyle(
+                          color: AppColors.navySoft,
+                          fontSize: 18,
+                        ),
+                      ),
+                    )),
                 // Mini waveform overlay
                 Positioned(
                   left: 16,
@@ -116,9 +124,7 @@ class _RehearsalScreenState extends State<RehearsalScreen>
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Column(children: [
-              AudienceStrip(
-                  members: mockAudience(24),
-                  caption: 'Rehearsal audience • reactions are simulated'),
+             
               const SizedBox(height: 10),
               const Row(children: [
                 Expanded(
