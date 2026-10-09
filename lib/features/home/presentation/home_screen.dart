@@ -41,7 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Positioned(
               left: 16,
               right: 16,
-              bottom: 18,
+              bottom: 20,
               child: _FloatingNavBar(
                 items: _navItems,
                 selectedIndex: _selected,
@@ -55,13 +55,16 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildCurrentTab(BuildContext context) {
+    late final Widget content;
     switch (_selected) {
       case 0:
-        return _HomeTabView(onLogout: _showLogoutPrompt);
+        content = const SizedBox.shrink();
+        break;
       case 1:
-        return const _ProgressTabView();
+        content = const SizedBox.shrink();
+        break;
       case 2:
-        return _PracticeTabView(
+        content = _PracticeTabView(
           onStart: () {
             Navigator.push(
               context,
@@ -69,13 +72,25 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           },
         );
+        break;
       case 3:
-        return const _ProfileTabView();
+        content = const SizedBox.shrink();
+        break;
       case 4:
-        return const _SettingsTabView();
+        content = const _SettingsTabView();
+        break;
       default:
-        return _HomeTabView(onLogout: _showLogoutPrompt);
+        content = const SizedBox.shrink();
     }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _HomeHeaderOnly(onLogout: _showLogoutPrompt),
+        if (_selected != 0) const SizedBox(height: 28),
+        content,
+      ],
+    );
   }
 
   Future<void> _showLogoutPrompt() async {
@@ -128,6 +143,34 @@ class _NavItem {
   final String label;
 }
 
+class _HomeHeaderOnly extends StatelessWidget {
+  const _HomeHeaderOnly({required this.onLogout});
+  final VoidCallback onLogout;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+      Text(
+        'VOICE MATE',
+        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+          letterSpacing: 1.8,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+      IconButton(
+        onPressed: onLogout,
+        tooltip: 'Log out',
+        style: IconButton.styleFrom(
+          foregroundColor: AppColors.navy,
+          backgroundColor: AppColors.sky,
+        ),
+        icon: const Icon(Icons.logout_rounded, size: 20),
+      ),
+    ],
+  );
+}
+
 /// Bottom-anchored floating rounded navigation bar
 class _FloatingNavBar extends StatelessWidget {
   const _FloatingNavBar({
@@ -143,7 +186,8 @@ class _FloatingNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      clipBehavior: Clip.none,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(32),
@@ -165,41 +209,39 @@ class _FloatingNavBar extends StatelessWidget {
           final isPractice = index == 2; // Middle item: Practice
 
           if (isPractice) {
-            // Practice: Middle one, emphasized and inside a large colored circle
-            return GestureDetector(
-              onTap: () => onSelected(index),
-              behavior: HitTestBehavior.opaque,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 54,
-                    height: 54,
-                    decoration: BoxDecoration(
-                      color: isSelected ? AppColors.blue : AppColors.navy,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2.5),
-                      boxShadow: [
-                        BoxShadow(
-                          color: (isSelected ? AppColors.blue : AppColors.navy)
-                              .withValues(alpha: 0.35),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
+            // Reserve the same horizontal slot as the other items, then lift
+            // the large control above the bar without changing its layout.
+            return Expanded(
+              child: Transform.translate(
+                offset: const Offset(0, 0),
+                child: GestureDetector(
+                  onTap: () => onSelected(index),
+                  behavior: HitTestBehavior.opaque,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          color: isSelected ? AppColors.blue : AppColors.navy,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 3),
+                          boxShadow: [
+                            BoxShadow(
+                              color:
+                                  (isSelected ? AppColors.blue : AppColors.navy)
+                                      .withValues(alpha: 0.35),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    child: Icon(item.icon, color: Colors.white, size: 28),
+                        child: Icon(item.icon, color: Colors.white, size: 34),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 3),
-                  Text(
-                    item.label,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      color: isSelected ? AppColors.blue : AppColors.navy,
-                    ),
-                  ),
-                ],
+                ),
               ),
             );
           }

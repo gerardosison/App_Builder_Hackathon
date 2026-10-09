@@ -44,7 +44,9 @@ class _PersonalizationScreenState extends State<PersonalizationScreen> {
       if (_selectedPractices.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Please select at least one practice goal to continue.'),
+            content: Text(
+              'Please select at least one practice goal to continue.',
+            ),
             backgroundColor: AppColors.coral,
           ),
         );
@@ -83,7 +85,10 @@ class _PersonalizationScreenState extends State<PersonalizationScreen> {
                     children: [
                       const Text(
                         'Select Practice Goals',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       IconButton(
                         icon: const Icon(Icons.close_rounded),
@@ -103,7 +108,9 @@ class _PersonalizationScreenState extends State<PersonalizationScreen> {
                       title: Text(
                         option,
                         style: TextStyle(
-                          fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                          fontWeight: selected
+                              ? FontWeight.bold
+                              : FontWeight.normal,
                         ),
                       ),
                       activeColor: AppColors.blue,
@@ -164,7 +171,7 @@ class _PersonalizationScreenState extends State<PersonalizationScreen> {
         centerTitle: true,
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: Padding(
           padding: const EdgeInsets.fromLTRB(28, 8, 28, 28),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -188,125 +195,153 @@ class _PersonalizationScreenState extends State<PersonalizationScreen> {
               ),
               const SizedBox(height: 28),
 
-              // Page Title & Subtitle
-              Text(
-                isLanguagePage
-                    ? 'What language would you like to use?'
-                    : 'What are you practicing for? (Select all that apply)',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      letterSpacing: -0.5,
-                      height: 1.25,
-                    ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                isLanguagePage
-                    ? 'Select your preferred language with flag icon & flag name.'
-                    : 'Choose all speaking formats relevant to your goals from the dropdown.',
-                style: const TextStyle(fontSize: 14, color: AppColors.navySoft),
-              ),
-              const SizedBox(height: 28),
-
-              // PAGE 1: Select Language (with Flag Icon & Flag Name) - Dropdown
-              if (isLanguagePage) ...[
-                const SizedBox(height: 8),
-                DropdownButtonFormField<String>(
-                  initialValue: _selectedLanguage,
-                  decoration: const InputDecoration(
-                    labelText: 'Language',
-                    prefixIcon: Icon(Icons.language_rounded),
-                  ),
-                  items: _languages.map((lang) {
-                    final display = '${lang.flag} ${lang.name}';
-                    return DropdownMenuItem<String>(
-                      value: display,
-                      child: Row(
-                        children: [
-                          Text(lang.flag, style: const TextStyle(fontSize: 20)),
-                          const SizedBox(width: 12),
-                          Text(
-                            lang.name,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                  onChanged: (val) {
-                    if (val != null) {
-                      setState(() => _selectedLanguage = val);
-                    }
-                  },
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.sky,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.line),
-                  ),
-                  child: Row(
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const Icon(Icons.info_outline_rounded, color: AppColors.navy),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'You can modify this anytime in Settings.',
-                          style: const TextStyle(fontSize: 12.5, color: AppColors.navy),
+                      // Page Title & Subtitle
+                      Text(
+                        isLanguagePage
+                            ? 'What language would you like to use?'
+                            : 'What are you practicing for? (Select all that apply)',
+                        style: Theme.of(context).textTheme.headlineMedium
+                            ?.copyWith(letterSpacing: -0.5, height: 1.25),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        isLanguagePage
+                            ? 'Select your preferred language with flag icon & flag name.'
+                            : 'Choose all speaking formats relevant to your goals from the dropdown.',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: AppColors.navySoft,
                         ),
                       ),
+                      const SizedBox(height: 28),
+
+                      // PAGE 1: Select Language (with Flag Icon & Flag Name) - Dropdown
+                      if (isLanguagePage) ...[
+                        const SizedBox(height: 8),
+                        DropdownButtonFormField<String>(
+                          initialValue: _selectedLanguage,
+                          decoration: const InputDecoration(
+                            labelText: 'Language',
+                            prefixIcon: Icon(Icons.language_rounded),
+                          ),
+                          items: _languages.map((lang) {
+                            final display = '${lang.flag} ${lang.name}';
+                            return DropdownMenuItem<String>(
+                              value: display,
+                              child: Row(
+                                children: [
+                                  Text(
+                                    lang.flag,
+                                    style: const TextStyle(fontSize: 20),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    lang.name,
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (val) {
+                            if (val != null) {
+                              setState(() => _selectedLanguage = val);
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: AppColors.sky,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: AppColors.line),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.info_outline_rounded,
+                                color: AppColors.navy,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'You can modify this anytime in Settings.',
+                                  style: const TextStyle(
+                                    fontSize: 12.5,
+                                    color: AppColors.navy,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 36),
+                      ]
+                      // PAGE 2: What are you practicing for (select all that apply) - Dropdown
+                      else ...[
+                        const SizedBox(height: 8),
+                        ..._practiceOptions.map((option) {
+                          final isSelected = _selectedPractices.contains(
+                            option,
+                          );
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              side: BorderSide(
+                                color: isSelected
+                                    ? AppColors.blue
+                                    : AppColors.line,
+                                width: isSelected ? 1.5 : 1.0,
+                              ),
+                            ),
+                            color: isSelected ? AppColors.sky : Colors.white,
+                            child: CheckboxListTile(
+                              value: isSelected,
+                              onChanged: (selected) {
+                                setState(() {
+                                  if (selected == true) {
+                                    _selectedPractices.add(option);
+                                  } else {
+                                    _selectedPractices.remove(option);
+                                  }
+                                });
+                              },
+                              title: Text(
+                                option,
+                                style: TextStyle(
+                                  fontWeight: isSelected
+                                      ? FontWeight.w700
+                                      : FontWeight.w500,
+                                  color: isSelected
+                                      ? AppColors.navy
+                                      : AppColors.ink,
+                                ),
+                              ),
+                              activeColor: AppColors.blue,
+                              controlAffinity: ListTileControlAffinity.leading,
+                            ),
+                          );
+                        }),
+                        const SizedBox(height: 20),
+                      ],
                     ],
                   ),
                 ),
-                const SizedBox(height: 36),
-              ]
-              // PAGE 2: What are you practicing for (select all that apply) - Dropdown
-              else ...[
-                const SizedBox(height: 8),
-                ..._practiceOptions.map((option) {
-                  final isSelected = _selectedPractices.contains(option);
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      side: BorderSide(
-                        color: isSelected ? AppColors.blue : AppColors.line,
-                        width: isSelected ? 1.5 : 1.0,
-                      ),
-                    ),
-                    color: isSelected ? AppColors.sky : Colors.white,
-                    child: CheckboxListTile(
-                      value: isSelected,
-                      onChanged: (selected) {
-                        setState(() {
-                          if (selected == true) {
-                            _selectedPractices.add(option);
-                          } else {
-                            _selectedPractices.remove(option);
-                          }
-                        });
-                      },
-                      title: Text(
-                        option,
-                        style: TextStyle(
-                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                          color: isSelected ? AppColors.navy : AppColors.ink,
-                        ),
-                      ),
-                      activeColor: AppColors.blue,
-                      controlAffinity: ListTileControlAffinity.leading,
-                    ),
-                  );
-                }),
-                const SizedBox(height: 20),
-              ],
+              ),
+              const SizedBox(height: 14),
 
-              // Action Button
+              // Bottom-anchored action for the active preference page.
               SizedBox(
                 height: 54,
                 child: ElevatedButton(
