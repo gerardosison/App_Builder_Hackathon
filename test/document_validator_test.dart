@@ -1,8 +1,3 @@
-import 'package:flutter_test/flutter_test.dart';
+// TODO: placeholder — real tests land with the backend implementation.
 
-void main() {
-  test('document validator placeholder test', () {
-    expect(true, isTrue);
-  });
-}
-
+void main() {}

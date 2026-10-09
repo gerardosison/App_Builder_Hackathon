@@ -1,0 +1,434 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
+
+import '../../../app/app_router.dart';
+import '../../../app/app_providers.dart';
+import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/app_theme.dart';
+import '../../../core/models/models.dart';
+import '../../../core/widgets/pip_cards.dart';
+import '../../../core/widgets/pip_chips.dart';
+import '../../../core/widgets/pip_mascot.dart';
+import '../../../core/widgets/pip_misc.dart';
+import '../../../core/widgets/star_level.dart';
+import '../../../features/auth/services/local_auth_service.dart';
+
+/// Progress tab — segmented Growth / Milestones views combining the two
+/// Stitch variants (`progress_growth_1`, `progress_growth_2`).
+class ProgressScreen extends ConsumerStatefulWidget {
+  const ProgressScreen({super.key});
+
+  @override
+  ConsumerState<ProgressScreen> createState() => _ProgressScreenState();
+}
+
+class _ProgressScreenState extends ConsumerState<ProgressScreen> {
+  int _view = 0; // 0 = Growth, 1 = Milestones
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+    final user = ref.watch(currentUserProvider) ?? LocalAuthService.mockUser;
+    final history = ref.watch(sessionHistoryProvider);
+
+    return Scaffold(
+      body: SafeArea(
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              children: [
+                // Header
+                Row(children: [
+                  Expanded(
+                    child: Text('Your Progress',
+                        style: text.headlineMedium
+                            ?.copyWith(color: scheme.primary)),
+                  ),
+                  StarChip(label: '${user.stars}'),
+                ]),
+                const SizedBox(height: 14),
+
+                // Segmented Growth / Milestones
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: scheme.surfaceContainerLow,
+                    borderRadius:
+                        BorderRadius.circular(AppTheme.pillRadius),
+                  ),
+                  child: Row(children: [
+                    _seg('Growth', 0, scheme),
+                    _seg('Milestones', 1, scheme),
+                  ]),
+                ),
+                const SizedBox(height: 16),
+
+                if (_view == 0)
+                  _growthView(user, history, text, scheme)
+                else
+                  _milestonesView(user, history, text, scheme),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _seg(String label, int index, ColorScheme scheme) {
+    final sel = _view == index;
+    final text = Theme.of(context).textTheme;
+    return Expanded(
+      child: Semantics(
+        selected: sel,
+        button: true,
+        label: '$label view',
+        child: InkWell(
+          onTap: () => setState(() => _view = index),
+          borderRadius: BorderRadius.circular(AppTheme.pillRadius),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            decoration: BoxDecoration(
+              color: sel ? scheme.primary : null,
+              borderRadius: BorderRadius.circular(AppTheme.pillRadius),
+            ),
+            child: Center(
+              child: Text(label,
+                  style: text.labelLarge?.copyWith(
+                      color: sel
+                          ? scheme.onPrimary
+                          : scheme.onSurfaceVariant)),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ------------------------------------------------- progress_growth_2
+  Widget _growthView(UserProfile user, List<PracticeSession> history,
+      TextTheme text, ColorScheme scheme) {
+    final needed = LevelProgress.starsNeeded(user.level);
+    return Column(children: [
+      // Level hero
+      PipCard(
+        child: Column(children: [
+          Row(children: [
+            const PipMascot(
+                asset: PipAsset.stars, size: 88, showBadge: false),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Level ${user.level} Orator',
+                        style: text.headlineMedium
+                            ?.copyWith(color: scheme.primary)),
+                    Text('Practice Hero rank',
+                        style: text.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant)),
+                    const SizedBox(height: 8),
+                    Row(children: [
+                      StarChip(label: '${user.stars} stars'),
+                      const SizedBox(width: 8),
+                      PipBadge(
+                          label: '${user.streakDays}d streak',
+                          icon: Icons.local_fire_department,
+                          background: AppColors.tertiaryFixed,
+                          foreground: AppColors.onTertiaryFixed),
+                    ]),
+                  ]),
+            ),
+          ]),
+          const SizedBox(height: 14),
+          LevelProgress(level: user.level, stars: user.stars),
+          const SizedBox(height: 6),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              user.stars == 0
+                  ? 'Complete one more speech to start earning stars'
+                  : '${needed - user.stars} stars to Level ${user.level + 1}',
+              style: text.bodySmall
+                  ?.copyWith(color: scheme.onSurfaceVariant),
+            ),
+          ),
+        ]),
+      ),
+      const SizedBox(height: 16),
+
+      // Pace chart (mock bars over the week)
+      PipCard(
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Speaking pace this week',
+              style: text.labelLarge?.copyWith(color: scheme.onSurface)),
+          const SizedBox(height: 4),
+          Text('Sweet spot: 130–150 wpm',
+              style: text.bodySmall
+                  ?.copyWith(color: scheme.onSurfaceVariant)),
+          const SizedBox(height: 14),
+          SizedBox(
+            height: 110,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                for (final (i, wpm) in [132, 168, 151, 142, 138, 0, 0].indexed)
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 400),
+                            height: wpm == 0 ? 8 : (wpm / 180) * 80,
+                            decoration: BoxDecoration(
+                              color: wpm == 0
+                                  ? scheme.surfaceContainerHigh
+                                  : (wpm <= 150
+                                      ? AppColors.tertiaryFixed
+                                      : AppColors.secondaryFixed),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            ['M', 'T', 'W', 'T', 'F', 'S', 'S'][i],
+                            style: text.labelSmall?.copyWith(
+                                color: scheme.onSurfaceVariant),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ]),
+      ),
+      const SizedBox(height: 16),
+
+      // Badges
+      const SectionHeader(title: 'Achievements'),
+      const SizedBox(height: 8),
+      Wrap(spacing: 8, runSpacing: 8, children: [
+        _badge('First Speech', Icons.mic, true),
+        _badge('3-Day Streak', Icons.local_fire_department, true),
+        _badge('Pace Pro', Icons.speed, true),
+        _badge('Filler Slayer', Icons.bubble_chart, user.stars >= 5),
+        _badge('Crowd Favorite', Icons.groups, false),
+        _badge('Level 5', Icons.military_tech, false),
+      ]),
+      const SizedBox(height: 16),
+
+      SectionHeader(
+          title: 'Recent practice',
+          action: 'View All',
+          onAction: () => context.push(AppRoutes.history)),
+      const SizedBox(height: 8),
+      for (final s in history.take(2))
+        Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: _historyCard(s, text, scheme),
+        ),
+    ]);
+  }
+
+  // ------------------------------------------------- progress_growth_1
+  Widget _milestonesView(UserProfile user, List<PracticeSession> history,
+      TextTheme text, ColorScheme scheme) {
+    final milestones = [
+      ('First rehearsal', 'Complete your first practice', true),
+      ('Earn a star', 'Improve on a previous speech', user.stars > 0),
+      ('10 speeches', 'Reach double digits', user.totalSessions >= 10),
+      ('Week-long streak', '7 days in a row', user.streakDays >= 7),
+      ('Level 5 Orator', 'Bank 50 total stars', false),
+    ];
+    return Column(children: [
+      // Hero mascot card
+      Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [AppColors.primaryContainer, AppColors.secondary],
+          ),
+          borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+        ),
+        child: Row(children: [
+          const PipMascot(
+              asset: PipAsset.stage, size: 90, showBadge: false),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('You\'re on a roll!',
+                      style: text.headlineSmall
+                          ?.copyWith(color: Colors.white)),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${user.totalSessions} speeches • ${user.stars} stars • '
+                    '${user.streakDays}-day streak',
+                    style: text.bodySmall
+                        ?.copyWith(color: AppColors.secondaryFixed),
+                  ),
+                ]),
+          ),
+        ]),
+      ),
+      const SizedBox(height: 16),
+      const SectionHeader(title: 'Milestones'),
+      const SizedBox(height: 8),
+      for (var i = 0; i < milestones.length; i++)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: PipCard(
+            padding: const EdgeInsets.all(16),
+            child: Row(children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: milestones[i].$3
+                      ? AppColors.tertiaryFixed
+                      : scheme.surfaceContainerHigh,
+                ),
+                child: Icon(
+                    milestones[i].$3
+                        ? Icons.check_circle
+                        : Icons.radio_button_unchecked,
+                    color: milestones[i].$3
+                        ? AppColors.onTertiaryFixed
+                        : scheme.outline),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(milestones[i].$1,
+                          style: text.labelLarge?.copyWith(
+                              color: scheme.onSurface)),
+                      Text(milestones[i].$2,
+                          style: text.bodySmall?.copyWith(
+                              color: scheme.onSurfaceVariant)),
+                    ]),
+              ),
+              if (milestones[i].$3)
+                const MintBadge(label: 'Done', icon: Icons.check),
+            ]),
+          ),
+        ),
+      const SizedBox(height: 8),
+      const SectionHeader(title: 'Session history'),
+      const SizedBox(height: 8),
+      if (history.isEmpty)
+        const PipEmptyState(
+            title: 'No sessions yet',
+            message: 'Your first rehearsal will appear here.',
+            asset: PipAsset.pacing)
+      else
+        for (final s in history)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: _historyCard(s, text, scheme),
+          ),
+    ]);
+  }
+
+  Widget _badge(String label, IconData icon, bool earned) {
+    final text = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+    return Opacity(
+      opacity: earned ? 1 : 0.45,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: earned
+              ? AppColors.gold.withValues(alpha: 0.25)
+              : scheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(AppTheme.pillRadius),
+          border: Border.all(
+              color: earned
+                  ? AppColors.gold
+                  : scheme.outlineVariant.withValues(alpha: 0.4)),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon,
+              size: 16,
+              color: earned ? AppColors.amber : scheme.outline),
+          const SizedBox(width: 6),
+          Text(label,
+              style: text.labelMedium?.copyWith(
+                  color:
+                      earned ? scheme.onSurface : scheme.outline)),
+        ]),
+      ),
+    );
+  }
+
+  Widget _historyCard(
+      PracticeSession s, TextTheme text, ColorScheme scheme) {
+    final mins = s.duration.inMinutes;
+    final secs = s.duration.inSeconds % 60;
+    return PipCard(
+      padding: const EdgeInsets.all(14),
+      onTap: () => context.push(AppRoutes.rehearsalAnalysis, extra: s),
+      child: Row(children: [
+        Container(
+          width: 52,
+          height: 52,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: s.paceScore > 75
+                ? AppColors.tertiaryFixed.withValues(alpha: 0.6)
+                : AppColors.secondaryFixed.withValues(alpha: 0.5),
+          ),
+          child: Center(
+            child: Text('${s.paceScore}',
+                style: text.labelLarge?.copyWith(color: scheme.primary)),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(s.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: text.labelLarge?.copyWith(color: scheme.onSurface)),
+            const SizedBox(height: 2),
+            Text(
+              '${DateFormat.MMMd().format(s.date)} • '
+              '$mins:${secs.toString().padLeft(2, '0')} • ${s.avgWpm} wpm',
+              style: text.bodySmall
+                  ?.copyWith(color: scheme.onSurfaceVariant),
+            ),
+            const SizedBox(height: 4),
+            Row(children: [
+              if (s.improved)
+                const MintBadge(label: 'Improved', icon: Icons.trending_up)
+              else
+                PipBadge(
+                    label: 'Off day',
+                    background: scheme.surfaceContainerHigh,
+                    foreground: scheme.onSurfaceVariant),
+              const SizedBox(width: 6),
+              if (s.starsEarned > 0)
+                StarChip(label: '+${s.starsEarned}'),
+            ]),
+          ]),
+        ),
+        Icon(Icons.chevron_right, color: scheme.outline),
+      ]),
+    );
+  }
+}

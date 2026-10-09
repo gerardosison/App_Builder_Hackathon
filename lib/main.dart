@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'app/app.dart';
+
+void main() {
+  runApp(const ProviderScope(child: PipSpeakApp()));
+}
 import 'app/theme/app_theme.dart';
 import 'app/theme/theme_controller.dart';
 import 'features/auth/presentation/login_screen.dart';
