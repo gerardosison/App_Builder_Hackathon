@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../auth/presentation/login_screen.dart';
+import '../../practice/presentation/setup_screen.dart';
 import '../../settings/presentation/settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -62,13 +63,9 @@ class _HomeScreenState extends State<HomeScreen> {
       case 2:
         return _PracticeTabView(
           onStart: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'Starting live practice session with microphone...',
-                ),
-                backgroundColor: AppColors.blue,
-              ),
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SetupScreen()),
             );
           },
         );

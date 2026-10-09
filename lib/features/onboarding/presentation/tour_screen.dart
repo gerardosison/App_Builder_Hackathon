@@ -18,7 +18,8 @@ class _TourScreenState extends State<TourScreen> {
       title: 'Home',
       icon: Icons.home_rounded,
       tagline: 'Your daily speaking launchpad',
-      function: 'Start each day with quick warm-ups and track your ongoing practice streak.',
+      function:
+          'Start each day with quick warm-ups and track your ongoing practice streak.',
       features: [
         'Daily 60-second impromptu speech warm-ups',
         'Habit streak counter & weekly session totals',
@@ -30,7 +31,8 @@ class _TourScreenState extends State<TourScreen> {
       title: 'Practice',
       icon: Icons.mic_rounded,
       tagline: 'Interactive speech training studio',
-      function: 'Record your talks, receive live coaching hints, and conquer stage fright.',
+      function:
+          'Record your talks, receive live coaching hints, and conquer stage fright.',
       features: [
         'Speech audio & video capture with live visualizer',
         'Instant detection of filler words and pacing errors',
@@ -42,7 +44,8 @@ class _TourScreenState extends State<TourScreen> {
       title: 'Progress',
       icon: Icons.insights_rounded,
       tagline: 'Analytics & growth insights',
-      function: 'Visualize your delivery metrics, confidence trends, and score history over time.',
+      function:
+          'Visualize your delivery metrics, confidence trends, and score history over time.',
       features: [
         'Fluency, clarity, and pacing performance scores',
         'Weekly practice frequency charts & consistency logs',
@@ -54,7 +57,8 @@ class _TourScreenState extends State<TourScreen> {
       title: 'Profile',
       icon: Icons.person_rounded,
       tagline: 'Your speaker identity & achievements',
-      function: 'Celebrate your growth, view unlocked speech badges, and manage your level.',
+      function:
+          'Celebrate your growth, view unlocked speech badges, and manage your level.',
       features: [
         'Speaker level progression (Level 1 Novice to Level 5 Master)',
         'Milestone badges (e.g. 7-day Streak, Clarity Champion)',
@@ -63,10 +67,11 @@ class _TourScreenState extends State<TourScreen> {
       previewType: _PreviewType.profile,
     ),
     _TourPageData(
-      title: 'Settings (with About Section)',
+      title: 'Settings',
       icon: Icons.tune_rounded,
       tagline: 'Customization, privacy & app information',
-      function: 'Fine-tune microphone inputs, toggle dark mode, and learn about the Voice Mate mission in the About Section.',
+      function:
+          'Fine-tune microphone inputs, toggle dark mode, and learn about the Voice Mate mission in the About Section.',
       features: [
         'Dark mode and visual appearance controls',
         'Microphone sensitivity calibration and privacy controls',
@@ -152,7 +157,7 @@ class _TourScreenState extends State<TourScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 32),
 
               // Page Header
               Row(
@@ -162,9 +167,13 @@ class _TourScreenState extends State<TourScreen> {
                     decoration: BoxDecoration(
                       color: AppColors.sky,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: AppColors.navy, width: 1.5),
+                      border: Border.all(color: AppColors.line, width: 1.5),
                     ),
-                    child: Icon(currentPage.icon, color: AppColors.navy, size: 24),
+                    child: Icon(
+                      currentPage.icon,
+                      color: AppColors.navy,
+                      size: 24,
+                    ),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -173,9 +182,8 @@ class _TourScreenState extends State<TourScreen> {
                       children: [
                         Text(
                           currentPage.title,
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.w800,
-                              ),
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.w800),
                         ),
                         Text(
                           currentPage.tagline,
@@ -189,7 +197,7 @@ class _TourScreenState extends State<TourScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 32),
 
               // Screen Preview + Tooltip Container
               Expanded(
@@ -199,7 +207,7 @@ class _TourScreenState extends State<TourScreen> {
                     children: [
                       // Interactive Preview Mockup Card
                       _PagePreviewMockup(previewType: currentPage.previewType),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 32),
 
                       // Tooltip Callout Box: Function & Features
                       _TooltipCallout(data: currentPage),
@@ -253,7 +261,7 @@ class _TourPageData {
   final _PreviewType previewType;
 }
 
-/// Tooltip Callout component highlighting function & features
+/// Info section highlighting the page function and features.
 class _TooltipCallout extends StatelessWidget {
   const _TooltipCallout({required this.data});
 
@@ -261,112 +269,84 @@ class _TooltipCallout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.line),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0C000000),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Tooltip Header Badge
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.yellow,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppColors.navy, width: 1.2),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.lightbulb_outline_rounded, size: 14, color: AppColors.navy),
-                    SizedBox(width: 5),
-                    Text(
-                      'PAGE TOOLTIP',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.navy,
-                      ),
-                    ),
-                  ],
-                ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(
+              Icons.info_outline_rounded,
+              size: 24,
+              color: AppColors.blue,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                '${data.title} function & features',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontSize: 16),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  '${data.title} function & features',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                    color: AppColors.navySoft,
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        // Function statement
+        const Text(
+          'FUNCTION:',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            color: AppColors.blue,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          data.function,
+          style: const TextStyle(
+            fontSize: 13.5,
+            height: 1.4,
+            color: AppColors.ink,
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Features statement
+        const Text(
+          'KEY FEATURES:',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            color: AppColors.blue,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 6),
+        ...data.features.map(
+          (feat) => Padding(
+            padding: const EdgeInsets.only(bottom: 5),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(
+                  Icons.check_circle_rounded,
+                  size: 16,
+                  color: Colors.green,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    feat,
+                    style: const TextStyle(fontSize: 13, height: 1.35),
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          // Function statement
-          const Text(
-            'FUNCTION:',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-              color: AppColors.blue,
-              letterSpacing: 0.5,
+              ],
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            data.function,
-            style: const TextStyle(fontSize: 13.5, height: 1.4, color: AppColors.ink),
-          ),
-          const SizedBox(height: 12),
-
-          // Features statement
-          const Text(
-            'KEY FEATURES:',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-              color: AppColors.blue,
-              letterSpacing: 0.5,
-            ),
-          ),
-          const SizedBox(height: 6),
-          ...data.features.map(
-            (feat) => Padding(
-              padding: const EdgeInsets.only(bottom: 5),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(Icons.check_circle_rounded, size: 16, color: Colors.green),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      feat,
-                      style: const TextStyle(fontSize: 13, height: 1.35),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -385,7 +365,7 @@ class _PagePreviewMockup extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.paper,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.navy, width: 2),
+        border: Border.all(color: AppColors.line, width: 2),
         boxShadow: const [
           BoxShadow(
             color: Color(0x1414213D),
@@ -426,10 +406,13 @@ class _HomePreview extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: AppColors.yellow,
+                  color: AppColors.sky,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Text('🔥 7 Days', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                child: const Text(
+                  '🔥 7 Days',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                ),
               ),
             ),
           ],
@@ -449,12 +432,20 @@ class _HomePreview extends StatelessWidget {
               children: [
                 Text(
                   "TODAY'S WARM-UP",
-                  style: TextStyle(color: AppColors.yellow, fontSize: 10, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: AppColors.blue,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 SizedBox(height: 4),
                 Text(
                   'Tell a story in 60 seconds',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
                 ),
                 SizedBox(height: 4),
                 Text(
@@ -477,7 +468,13 @@ class _HomePreview extends StatelessWidget {
                 ),
                 child: const Column(
                   children: [
-                    Text('12', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    Text(
+                      '12',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
                     Text('Sessions', style: TextStyle(fontSize: 10)),
                   ],
                 ),
@@ -493,7 +490,13 @@ class _HomePreview extends StatelessWidget {
                 ),
                 child: const Column(
                   children: [
-                    Text('88%', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    Text(
+                      '88%',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
                     Text('Fluency', style: TextStyle(fontSize: 10)),
                   ],
                 ),
@@ -558,7 +561,11 @@ class _PracticePreview extends StatelessWidget {
             SizedBox(width: 6),
             Text(
               'Real-time Pacing & Filler Word Detection',
-              style: TextStyle(fontSize: 11, color: AppColors.navySoft, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 11,
+                color: AppColors.navySoft,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         ),
@@ -593,7 +600,13 @@ class _ProgressPreview extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('Confidence', style: TextStyle(fontSize: 10)),
-                    Text('92/100', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    Text(
+                      '92/100',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -610,7 +623,13 @@ class _ProgressPreview extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('Clarity', style: TextStyle(fontSize: 10)),
-                    Text('89%', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    Text(
+                      '89%',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -678,17 +697,27 @@ class _ProfilePreview extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: const BoxDecoration(
-                color: AppColors.yellow,
+                color: AppColors.sky,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.person_rounded, size: 28, color: AppColors.navy),
+              child: const Icon(
+                Icons.person_rounded,
+                size: 28,
+                color: AppColors.navy,
+              ),
             ),
             const SizedBox(width: 12),
             const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Alex Speaker', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                Text('Level 4: Eloquent Speaker', style: TextStyle(fontSize: 11, color: AppColors.blue)),
+                Text(
+                  'Alex Speaker',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                Text(
+                  'Level 4: Eloquent Speaker',
+                  style: TextStyle(fontSize: 11, color: AppColors.blue),
+                ),
               ],
             ),
           ],
@@ -704,7 +733,10 @@ class _ProfilePreview extends StatelessWidget {
           child: const Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('BADGES & ACHIEVEMENTS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+              Text(
+                'BADGES & ACHIEVEMENTS',
+                style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+              ),
               SizedBox(height: 6),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -747,7 +779,11 @@ class _SettingsPreview extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Icon(Icons.dark_mode_outlined, size: 16, color: AppColors.blue),
+                  Icon(
+                    Icons.dark_mode_outlined,
+                    size: 16,
+                    color: AppColors.blue,
+                  ),
                   SizedBox(width: 8),
                   Text('Dark mode', style: TextStyle(fontSize: 11)),
                 ],
@@ -764,7 +800,7 @@ class _SettingsPreview extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.sky,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.navy, width: 1.2),
+              border: Border.all(color: AppColors.line, width: 1.2),
             ),
             child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -772,11 +808,19 @@ class _SettingsPreview extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.info_outline_rounded, size: 16, color: AppColors.navy),
+                    Icon(
+                      Icons.info_outline_rounded,
+                      size: 16,
+                      color: AppColors.navy,
+                    ),
                     SizedBox(width: 6),
                     Text(
                       'About Voice Mate Section',
-                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: AppColors.navy),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 12,
+                        color: AppColors.navy,
+                      ),
                     ),
                   ],
                 ),
@@ -788,7 +832,11 @@ class _SettingsPreview extends StatelessWidget {
                 SizedBox(height: 2),
                 Text(
                   'Version 1.0.0 • Hackathon Edition',
-                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.blue),
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.blue,
+                  ),
                 ),
               ],
             ),

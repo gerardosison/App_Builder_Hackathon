@@ -209,15 +209,6 @@ class _PersonalizationScreenState extends State<PersonalizationScreen> {
 
               // PAGE 1: Select Language (with Flag Icon & Flag Name) - Dropdown
               if (isLanguagePage) ...[
-                const Text(
-                  'SELECT LANGUAGE',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.blue,
-                    letterSpacing: 0.8,
-                  ),
-                ),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
                   initialValue: _selectedLanguage,
@@ -264,7 +255,7 @@ class _PersonalizationScreenState extends State<PersonalizationScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'Currently selected: $_selectedLanguage\nYou can modify this anytime in Settings.',
+                          'You can modify this anytime in Settings.',
                           style: const TextStyle(fontSize: 12.5, color: AppColors.navy),
                         ),
                       ),
@@ -275,48 +266,6 @@ class _PersonalizationScreenState extends State<PersonalizationScreen> {
               ]
               // PAGE 2: What are you practicing for (select all that apply) - Dropdown
               else ...[
-                const Text(
-                  'PRACTICE PURPOSES',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.blue,
-                    letterSpacing: 0.8,
-                  ),
-                ),
-                const SizedBox(height: 8),
-
-                // Multi-select dropdown field
-                InkWell(
-                  onTap: _showMultiSelectDropdown,
-                  borderRadius: BorderRadius.circular(16),
-                  child: InputDecorator(
-                    decoration: const InputDecoration(
-                      labelText: 'Select all goals that apply',
-                      prefixIcon: Icon(Icons.checklist_rounded),
-                      suffixIcon: Icon(Icons.arrow_drop_down_rounded, size: 28),
-                    ),
-                    child: Text(
-                      _selectedPractices.isEmpty
-                          ? 'Select options from dropdown...'
-                          : _selectedPractices.join(', '),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: _selectedPractices.isEmpty ? Colors.grey : AppColors.ink,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Quick selector checkboxes for the 5 specified options
-                const Text(
-                  'Quick select or toggle options below:',
-                  style: TextStyle(fontSize: 12, color: AppColors.navySoft),
-                ),
                 const SizedBox(height: 8),
                 ..._practiceOptions.map((option) {
                   final isSelected = _selectedPractices.contains(option);

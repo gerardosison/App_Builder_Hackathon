@@ -182,12 +182,11 @@ void main() {
         'Practice',
         'Progress',
         'Profile',
-        'Settings (with About Section)',
+        'Settings',
       ];
 
       for (int i = 0; i < pages.length; i++) {
         expect(find.text(pages[i]), findsWidgets);
-        expect(find.text('PAGE TOOLTIP'), findsOneWidget);
         expect(find.text('FUNCTION:'), findsOneWidget);
         expect(find.text('KEY FEATURES:'), findsOneWidget);
 
