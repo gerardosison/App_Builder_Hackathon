@@ -3,7 +3,10 @@ import '../models/speech_metrics.dart';
 /// Service interface for Member 4 Speech AI (Whisper / Sherpa-ONNX)
 abstract class SpeechRecognitionService {
   /// Transcribe a locally recorded audio file using on-device Whisper Base ASR
-  Future<TranscriptionResult> transcribe(String audioPath);
+  Future<TranscriptionResult> transcribe(
+    String audioPath, {
+    String language = 'auto',
+  });
 
   /// Check whether the ASR model file is loaded and ready
   Future<bool> isModelLoaded();

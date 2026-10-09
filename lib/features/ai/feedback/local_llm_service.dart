@@ -24,9 +24,11 @@ class LocalLlmService {
   bool _isLoading = false;
   String _lastError = '';
 
-  static const String _assetPath =
-      'assets/models/llm/qwen3-0.6b-q4_k_m.gguf';
+  static const String _assetPath = 'assets/models/llm/qwen3-0.6b-q4_k_m.gguf';
   static const String _modelFileName = 'qwen3-0.6b-q4_k_m.gguf';
+  static const MethodChannel _nativeChannel = MethodChannel(
+    'com.hawkabuild.app/ai',
+  );
 
   bool get isLoaded => _isLoaded;
   bool get isLoading => _isLoading;
@@ -47,23 +49,22 @@ class LocalLlmService {
 
     await modelFile.parent.create(recursive: true);
 
-    // Fallback: check direct local disk / download paths first if available
-    final fallbackPaths = [
-      r'c:\Users\rexje\App_Builder_Hackathon\Qwen3-0.6B.Q4_K_M.gguf',
-      r'c:\Users\rexje\App_Builder_Hackathon\assets\models\llm\qwen3-0.6b-q4_k_m.gguf',
-      r'c:\Users\rexje\App_Builder_Hackathon\android\app\src\main\assets\models\llm\qwen3-0.6b-q4_k_m.gguf',
-      '/sdcard/Download/Qwen3-0.6B.Q4_K_M.gguf',
-      '/sdcard/Download/qwen3-0.6b-q4_k_m.gguf',
-      '/storage/emulated/0/Download/Qwen3-0.6B.Q4_K_M.gguf',
-      '/storage/emulated/0/Download/qwen3-0.6b-q4_k_m.gguf',
-    ];
-
-    for (final path in fallbackPaths) {
-      final f = File(path);
-      if (f.existsSync() && f.lengthSync() > 1024 * 1024) {
-        await f.copy(modelFile.path);
-        return modelFile.path;
+    // On Android, copy the bundled native asset to app storage. llama.cpp
+    // needs a real path for the local GGUF model.
+    try {
+      final nativePath = await _nativeChannel.invokeMethod<String>(
+        'prepareQwenModel',
+      );
+      if (nativePath != null) {
+        final nativeFile = File(nativePath);
+        if (nativeFile.existsSync() && nativeFile.lengthSync() > 1024 * 1024) {
+          return nativeFile.path;
+        }
       }
+    } on MissingPluginException {
+      // Fall through to Flutter asset loading on non-Android platforms.
+    } on PlatformException catch (error) {
+      _lastError = error.message ?? 'Could not copy the bundled Qwen model.';
     }
 
     try {
@@ -77,10 +78,9 @@ class LocalLlmService {
     } catch (_) {}
 
     throw Exception(
-      '⚠️ GGUF model not found or placeholder detected.\n\n'
-      'Make sure Qwen3-0.6B.Q4_K_M.gguf is downloaded (~484 MB).\n'
-      'It has been copied to: android/app/src/main/assets/models/llm/qwen3-0.6b-q4_k_m.gguf\n\n'
-      'Please run: flutter run to build with the real model!',
+      'Qwen GGUF model is missing or incomplete. Ensure the real model file '
+      'is at android/app/src/main/assets/models/llm/$_modelFileName. '
+      '${_lastError.isEmpty ? '' : _lastError}',
     );
   }
 
@@ -131,18 +131,30 @@ class LocalLlmService {
     required String speakingGoal,
   }) {
     final buf = StringBuffer();
-    buf.writeln('You are HawkABuild AI Speech Coach running offline on this Android device.');
-    buf.writeln('Rules: Only use the measured data below. Never invent numbers.');
+    buf.writeln(
+      'You are HawkABuild AI Speech Coach running offline on this Android device.',
+    );
+    buf.writeln(
+      'Rules: Only use the measured data below. Never invent numbers.',
+    );
     buf.writeln('Speaking Goal: $speakingGoal');
-    buf.writeln('Measured Speech Rate: ${speech.wordsPerMinute.toStringAsFixed(1)} WPM');
+    buf.writeln(
+      'Measured Speech Rate: ${speech.wordsPerMinute.toStringAsFixed(1)} WPM',
+    );
     buf.writeln('Word Count: ${speech.wordCount}');
-    buf.writeln('Filler Words: ${speech.totalFillers} (${speech.fillerOccurrences})');
+    buf.writeln(
+      'Filler Words: ${speech.totalFillers} (${speech.fillerOccurrences})',
+    );
     if (pose != null && pose.isPersonInFrame) {
       buf.writeln('Body Sway: ${pose.bodySwayCm.toStringAsFixed(1)} cm');
       buf.writeln('Posture Score: ${pose.postureScore.toStringAsFixed(0)}/100');
-      buf.writeln('Hand Gesture Score: ${pose.handGestureActivityScore.toStringAsFixed(0)}/100');
+      buf.writeln(
+        'Hand Gesture Score: ${pose.handGestureActivityScore.toStringAsFixed(0)}/100',
+      );
     }
-    buf.writeln('\nProvide a focused 2-3 sentence coaching tip for improving delivery.');
+    buf.writeln(
+      '\nProvide a focused 2-3 sentence coaching tip for improving delivery.',
+    );
     return buf.toString();
   }
 
@@ -151,9 +163,13 @@ class LocalLlmService {
     required String userMessage,
     List<ChatMessage> conversationHistory = const [],
     String systemMessage =
-        'You are HawkABuild AI, a helpful speech coach. '
-        'Give honest, concise, evidence-based answers about public speaking. '
-        'Reply in the language the user uses, including Filipino or Taglish.',
+        'You are HawkABuild AI, a helpful on-device assistant. Answer the '
+        'latest user message directly and stay on its exact topic. Start with '
+        'the answer to what was asked; do not substitute generic advice or '
+        'repeat earlier answers. Give public-speaking coaching only when the '
+        'user asks for it. Use the same language as the user, including '
+        'Filipino or Taglish. Be concise and do not invent details. '
+        'Answer directly without showing chain-of-thought. /no_think',
     int maxTokens = 512,
     double temperature = 0.7,
   }) {

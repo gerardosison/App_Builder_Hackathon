@@ -71,6 +71,7 @@ flutter:
 
   assets:
     - assets/models/llm/
+    - assets/models/whisper/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

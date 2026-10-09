@@ -1,17 +1,12 @@
 import 'dart:io';
+import 'package:flutter/services.dart';
 import '../../../core/models/speech_metrics.dart';
 import '../../../core/services/speech_recognition_service.dart';
 
-/// Speech metrics service.
-///
-/// The live Android practice screen uses the device speech recognizer directly.
-/// This class deliberately does not fabricate a transcript when a native
-/// Whisper runtime is unavailable.
+/// Offline Android transcription through the bundled whisper.cpp JNI runtime.
 class WhisperSpeechService implements SpeechRecognitionService {
+  static const MethodChannel _channel = MethodChannel('com.hawkabuild.app/ai');
   bool _isLoaded = false;
-  final String modelPath;
-
-  WhisperSpeechService({this.modelPath = 'assets/models/whisper/ggml-base-q5_1.bin'});
 
   @override
   Future<bool> isModelLoaded() async {
@@ -19,26 +14,66 @@ class WhisperSpeechService implements SpeechRecognitionService {
   }
 
   Future<void> initializeModel() async {
-    final model = File(modelPath);
-    if (!model.existsSync() || model.lengthSync() < 1024 * 1024) {
+    try {
+      _isLoaded =
+          await _channel.invokeMethod<bool>('initializeWhisper') ?? false;
+    } on PlatformException catch (error) {
+      _isLoaded = false;
       throw StateError(
-        'Whisper model is not available at "$modelPath". '
-        'Use the live Android speech recognizer or install a real Whisper '
-        'native runtime before calling this service.',
+        error.message ?? 'Could not initialize the local Whisper model.',
+      );
+    } on MissingPluginException {
+      _isLoaded = false;
+      throw StateError(
+        'The Android AI method channel is not registered. Confirm the app launches com.hawkabuild.app.MainActivity.',
       );
     }
-    _isLoaded = true;
+    if (!_isLoaded) {
+      throw StateError('Could not initialize the local Whisper model.');
+    }
   }
 
   @override
-  Future<TranscriptionResult> transcribe(String audioPath) async {
+  Future<TranscriptionResult> transcribe(
+    String audioPath, {
+    String language = 'auto',
+  }) async {
     if (audioPath.isEmpty) {
       return TranscriptionResult.failure('Audio file path is empty.');
     }
-    return TranscriptionResult.failure(
-      'Offline Whisper transcription is not wired to a native runtime. '
-      'The Android practice screen uses live device speech recognition instead.',
-    );
+    if (!File(audioPath).existsSync()) {
+      return TranscriptionResult.failure(
+        'Audio file does not exist: $audioPath',
+      );
+    }
+
+    try {
+      if (!_isLoaded) await initializeModel();
+      final response = await _channel.invokeMapMethod<String, dynamic>(
+        'transcribe',
+        {'audioPath': audioPath, 'language': language},
+      );
+      final text = response?['text'] as String? ?? '';
+      final duration = (response?['durationSeconds'] as num?)?.toDouble() ?? 0;
+      if (text.isEmpty) {
+        return TranscriptionResult.failure('Whisper returned no speech text.');
+      }
+      return TranscriptionResult(
+        text: text,
+        durationSeconds: duration,
+        detectedLanguage: response?['language'] as String? ?? language,
+      );
+    } on PlatformException catch (error) {
+      return TranscriptionResult.failure(
+        error.message ?? 'Offline Whisper transcription failed.',
+      );
+    } on MissingPluginException {
+      return TranscriptionResult.failure(
+        'The Android AI method channel is not registered. Confirm the app launches com.hawkabuild.app.MainActivity.',
+      );
+    } on StateError catch (error) {
+      return TranscriptionResult.failure(error.message.toString());
+    }
   }
 
   @override
@@ -52,7 +87,9 @@ class WhisperSpeechService implements SpeechRecognitionService {
 
     final words = transcription.text.trim().split(RegExp(r'\s+'));
     final int wordCount = words.length;
-    final double durationMin = durationSeconds > 0 ? durationSeconds / 60.0 : 0.5;
+    final double durationMin = durationSeconds > 0
+        ? durationSeconds / 60.0
+        : 0.5;
     final double wpm = durationMin > 0 ? wordCount / durationMin : 0.0;
 
     // Count filler words
@@ -72,13 +109,11 @@ class WhisperSpeechService implements SpeechRecognitionService {
       wordCount: wordCount,
       speechDurationSeconds: durationSeconds,
       wordsPerMinute: double.parse(wpm.toStringAsFixed(1)),
-      fillerOccurrences: {
-        'um': umCount,
-        'uh': uhCount,
-        'like': likeCount,
-      },
+      fillerOccurrences: {'um': umCount, 'uh': uhCount, 'like': likeCount},
       totalFillers: totalFillers,
-      pauseCount: transcription.segments.length > 1 ? transcription.segments.length - 1 : 1,
+      pauseCount: transcription.segments.length > 1
+          ? transcription.segments.length - 1
+          : 1,
       avgPauseDurationSeconds: 1.2,
     );
   }

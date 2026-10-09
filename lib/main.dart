@@ -21,8 +21,8 @@ class HawkABuildApp extends StatelessWidget {
         colorSchemeSeed: Colors.cyan,
         scaffoldBackgroundColor: const Color(0xFF0B0F19),
       ),
-      // Intentional empty app shell: the sample test dashboard is not the
-      // product UI. Add the original screens and route them from here.
+      // Keep the production app shell clear of the temporary test dashboard.
+      // The team can connect its original presentation UI here.
       home: const Scaffold(),
     );
   }
