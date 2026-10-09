@@ -1,0 +1,600 @@
+HAWKABUILD — Final Technical Workflow, AI Models & Team Structure
+AppBuildersPH Hackathon · Education · Android-first · Flutter · Fully offline AI · 4 developers
+For your team, I recommend an Android-first Flutter application with three local AI components: speech transcription, body-pose analysis, and personalized feedback generation.
+The fourth component—document processing—can initially use regular offline algorithms rather than another AI model.
+This architecture is designed to avoid paid APIs and cloud subscriptions. I also checked the published versions of the principal libraries and model candidates.
+1. Your updated team assignments
+
+Member 1 — Aldred
+Frontend Developer & UI/UX Lead
+Owns Flutter screens, Material 3 styling, navigation, cartoon audience, camera preview, onboarding, dashboard, profile, progress visualizations and the presentation of AI feedback.
+
+
+
+
+Member 2 — Alexis
+Backend & Application Logic Lead
+Owns practice-session orchestration, recording lifecycle, permissions coordination, speech metric calculations, progress/star business rules, service integration and error handling.
+
+
+
+
+Member 3 — Gerardo
+Backend, Database & Document Processing Lead
+Owns SQLite/Drift, local user accounts, session storage, profile editing/deletion, PDF/DOCX extraction, repository implementation, schema migrations and privacy-related data management.
+
+
+
+
+Member 4 — AI Integration Engineer
+Speech AI · Computer Vision · Local LLM
+Owns native Android AI integration, model files, offline ASR, MediaPipe Pose Landmarker, optional local LLM, model optimization, inference benchmarking and AI output validation.
+
+
+
+Ownership distinction: Alexis develops the logic that uses AI results. Member 4 develops the AI engines that produce those results. Gerardo persists the outputs. Aldred displays them.
+This separation is particularly important because neither your UI nor your database should be directly responsible for running AI models.
+2. Specific free Local AI models and versions
+Recommended implementation baseline
+Free-first
+
+Task	Exact model or runtime	Role
+Speech-to-text	Whisper Base Multilingual, ggml-base-q5_1.bin	Primary ASR
+ASR runtime	whisper.cpp v1.9.4	Runs Whisper on Android
+Body movement	MediaPipe Pose Landmarker Lite, float16 model	Primary vision
+Vision runtime	MediaPipe Tasks Vision 0.10.35	Android pose inference
+Coaching feedback	Qwen3-0.6B-GGUF, Q4_K_M variant	Optional generative feedback
+LLM runtime	llama.cpp, pinned tested commit	Android GGUF inference
+Pauses	VAD or timestamp/signal algorithms	Optional improvement
+Document content	Local PDF/DOCX parsing	No model initially
+
+These are concrete candidates, not yet a tested compatible build on your team's device. The Flutter/Android toolchain, native libraries, and all model files must be pinned in your repository after the first successful integration.
+AI Model 1 — Offline speech recognition
+
+
+
+
+
+
+
+
+
+Whisper Base Multilingual
+- Model family: OpenAI Whisper Base
+- Selected file: ggml-base-q5_1.bin
+- Approximate model file size: 57 MiB
+- Runtime: whisper.cpp v1.9.4
+- Purpose: Transcribe student speeches in supported languages
+- License: MIT for the published Whisper model/runtime distributions
+The multilingual Base model is a better starting point than the English-only variant if your students may speak Filipino or mix languages. It still needs accuracy testing for Filipino and Taglish.
+
+
+Official resources: whisper.cpp releases and Whisper GGML model files. 
+
+GitHub
++1
+
+
+
+Fallback: Use Whisper Tiny Multilingual ggml-tiny-q5_1.bin (approximately 31 MiB) if Base is too slow on your test phone. Its transcription quality may be lower. 
+
+Hugging Face
+
+
+
+Alternative runtime: sherpa_onnx version 1.13.8 is worth testing because it has Flutter/Android support. It does not automatically mean every Whisper GGML model file is compatible; choose an ASR model exported for that runtime if you switch. 
+
+All Versions
++1
+
+
+
+AI Model 2 — Body language and posture analysis
+
+
+
+
+
+
+
+
+
+MediaPipe Pose Landmarker Lite
+- Model asset: pose_landmarker_lite.task
+- Model variant: Lite, float16
+- Android library starting point: com.google.mediapipe:tasks-vision:0.10.35
+- Purpose: Detect body landmarks in camera frames
+- Primary output: Landmark positions and visibility information
+Use pose coordinates to calculate observable sway, arm movement and camera framing. MediaPipe does not directly generate a valid public-speaking score or diagnose confidence.
+
+
+Google's Android implementation documents the model asset and task integration. The 0.10.35 library release is published; verify that your chosen model asset loads successfully with that library. 
+
+Google for Developers
++1
+
+
+
+AI Model 3 — Personalized local feedback
+
+
+
+
+
+
+
+
+
+Qwen3 0.6B Instruct-capable Model
+- Model: Qwen/Qwen3-0.6B-GGUF
+- Suggested quantization: Q4_K_M, if available in the official distribution
+- Runtime: llama.cpp
+- License: Apache 2.0 for the official model
+- Purpose: Turn structured speech and pose measurements into personalized coaching tips
+The official GGUF repository is available and Apache-licensed. The final GGUF file, hash and exact llama.cpp commit should be locked after benchmarking.
+
+
+Official model: Qwen3 0.6B GGUF. 
+
+Hugging Face
+
+
+
+Important design decision: Qwen is an optional improvement to the feedback engine. Use rule-based recommendations as the reliable baseline. A 0.6B model may struggle with nuanced academic comparisons, Filipino output, or strict instructions.
+What about speech speed, fillers, and documents?
+You don't need to add a model for every feature.
+Feature	Recommended implementation
+Speaking speed	Word count divided by a clearly defined duration
+Filler words	Configurable word/phrase matching over editable transcripts
+Long pauses	Audio VAD or validated speech segment timestamps
+Body sway	Landmark-based displacement over time
+PDF extraction	Offline parser and text quality checks
+Missing speech sections	Compare document sections to the transcript
+Stars and levels	Deterministic Dart business logic
+These methods make your results more explainable than asking a language model to invent scores.
+3. Complete application workflow
+FROM APP START TO SESSION COMPLETION
+1. Open application
+Load app settings and local database
+Owner: Aldred + Gerardo
+
+2. Login / register local profile
+Set up nickname, language and practice goals
+Owner: Aldred + Gerardo
+
+3. Main dashboard
+Practice, progress, profile and settings
+Owner: Aldred
+
+4. Prepare speech
+Choose goal, optional document, and audio/video mode
+Owner: Aldred + Gerardo
+
+5. Practice room
+Record speech, collect eligible camera frames, show cartoon audience
+Owner: Aldred + Alexis
+
+6. Process speech and pose
+Offline Whisper transcription + MediaPipe landmarks
+Owner: Member 4
+
+7. Calculate performance metrics
+Speech rate, fillers, pauses and visible movements
+Owner: Alexis
+
+8. Generate coaching feedback
+Rule-based results + optional on-device Qwen explanation
+Owner: Alexis + Member 4
+
+9. Save and evaluate progress
+Store results, compare previous sessions, update stars
+Owner: Gerardo + Alexis
+
+10. Display feedback report
+Show evidence, tips, limitations and previous performance
+Owner: Aldred
+
+
+
+How the four members' modules connect
+Aldred — Flutter Presentation Layer
+Screens · Controllers · User interactions
+
+
+Alexis — Application Services
+Session orchestration · Metrics · Progress rules
+
+
+Member 4 — Local AI
+Whisper · MediaPipe · Qwen
+
+
+Gerardo — Data Layer
+SQLite · Documents · Profiles
+
+
+
+Both lower modules provide services to Alexis's application layer. The diagram is architectural; it does not mean raw audio or video passes through an LLM.
+4. Development schedule with assigned responsibilities
+This is a 14-day reference sprint, not your confirmed hackathon duration. If time is shorter, prioritize the first working offline pipeline.
+Phase	Aldred	Alexis	Gerardo	Member 4
+Days 1–2: Setup	Theme, wireframes, app navigation	Define session states and service interfaces	Database schema and repository interfaces	Run Whisper and MediaPipe proofs of concept
+Days 3–5: Core	Dashboard and recording UI	Recording workflow, speech metrics	Local profiles and session persistence	Offline ASR and pose implementation
+Days 6–8: Integration	Connect screens to services	Orchestrate record → analyze → feedback	Save/retrieve results	Return AI outputs through typed interfaces
+Days 9–11: Enhancements	Cartoon audience, charts, dark mode	Progress rules and error handling	PDF extraction, stars and profile deletion	Optional Qwen feedback and optimization
+Days 12–14: Release	UI testing and polishing	End-to-end testing	Database testing, release packaging	AI quality and real-device benchmarking
+Mandatory milestones
+1. End of Day 2: Basic Android APK builds; speech and pose models run independently on the target device.
+2. End of Day 5: Recording, local transcription, pose detection and local database work independently.
+3. End of Day 8: One complete practice session produces an offline feedback report and saves it.
+4. End of Day 11: Supporting features are integrated without breaking the basic workflow.
+5. End of Day 14: Release APK works in airplane mode and passes the demo checklist.
+
+5. Required package and dependency plan
+Use an SDK-compatible version set, not blindly the latest of everything.
+Dependency	Suggested baseline	Use
+Flutter	Stable channel, pin exact SDK commit	Mobile framework
+flutter_riverpod	3.4.3	State management
+record	6.2.1	Audio recording
+drift	2.35.2	SQLite data access
+drift_flutter	0.3.1	Flutter database setup
+sherpa_onnx	1.13.8, alternative ASR	Optional replacement for whisper.cpp
+MediaPipe Tasks Vision	0.10.35	Pose Landmarker for Android
+whisper.cpp	v1.9.4	Primary speech runtime
+llama.cpp	Tested pinned commit	Optional on-device feedback
+The current Drift and Riverpod releases have newer Dart SDK requirements, while record 6.2.1 supports older Dart 3.5-based projects. The complete set therefore needs a compatible Flutter/Dart version before implementation. 
+
+All Versions
++3
+
+
+
+Also add supported versions of camera, path_provider, file_picker, go_router, permission_handler, sqlite3_flutter_libs where needed, plus build_runner and drift_dev. Pin those through a committed pubspec.lock after dependency resolution rather than inventing unverified version numbers.
+Do not integrate both sherpa-onnx and whisper.cpp in the production APK unless there is a demonstrated need. Benchmark alternatives, then ship one primary ASR engine.
+6. Complete recommended Flutter folder structure
+This is the structure I recommend creating for your application. It follows a feature-based Flutter architecture while keeping platform-specific model integration separated from Dart business logic.
+The tree represents the intended project structure, not files that have already been generated or tested.
+
+hawkabuild/
+│
+├── README.md
+├── LICENSES.md
+├── .gitignore
+├── .metadata
+├── analysis_options.yaml
+├── pubspec.yaml
+├── pubspec.lock
+│
+├── docs/
+│   ├── architecture.md
+│   ├── team-assignments.md
+│   ├── model-manifest.md
+│   ├── setup-guide.md
+│   ├── privacy-policy.md
+│   ├── scoring-rules.md
+│   └── testing-plan.md
+│
+├── assets/
+│   ├── images/
+│   │   ├── logo.png
+│   │   ├── onboarding/
+│   │   └── avatars/
+│   ├── animations/
+│   │   └── audience/
+│   └── sample_documents/
+│
+├── lib/
+│   ├── main.dart
+│   │
+│   ├── app/
+│   │   ├── app.dart
+│   │   ├── app_router.dart
+│   │   ├── app_providers.dart
+│   │   └── theme/
+│   │       ├── app_colors.dart
+│   │       ├── app_theme.dart
+│   │       └── app_typography.dart
+│   │
+│   ├── core/
+│   │   ├── constants/
+│   │   │   ├── app_constants.dart
+│   │   │   └── model_constants.dart
+│   │   ├── errors/
+│   │   │   ├── app_exception.dart
+│   │   │   └── analysis_failure.dart
+│   │   ├── models/
+│   │   │   ├── user_profile.dart
+│   │   │   ├── practice_session.dart
+│   │   │   ├── speech_metrics.dart
+│   │   │   ├── pose_metrics.dart
+│   │   │   ├── transcript_segment.dart
+│   │   │   ├── feedback_report.dart
+│   │   │   ├── document_result.dart
+│   │   │   └── progress_record.dart
+│   │   ├── services/
+│   │   │   ├── speech_recognition_service.dart
+│   │   │   ├── pose_analysis_service.dart
+│   │   │   ├── feedback_service.dart
+│   │   │   └── document_service.dart
+│   │   ├── permissions/
+│   │   │   └── permission_service.dart
+│   │   └── widgets/
+│   │       ├── primary_button.dart
+│   │       ├── loading_view.dart
+│   │       └── error_view.dart
+│   │
+│   ├── features/
+│   │   ├── onboarding/
+│   │   │   ├── presentation/
+│   │   │   │   ├── welcome_screen.dart
+│   │   │   │   ├── tour_screen.dart
+│   │   │   │   └── personalization_screen.dart
+│   │   │   └── providers/
+│   │   │       └── onboarding_provider.dart
+│   │   │
+│   │   ├── auth/
+│   │   │   ├── presentation/
+│   │   │   │   ├── login_screen.dart
+│   │   │   │   └── register_screen.dart
+│   │   │   └── services/
+│   │   │       └── local_auth_service.dart
+│   │   │
+│   │   ├── home/
+│   │   │   └── presentation/
+│   │   │       └── home_screen.dart
+│   │   │
+│   │   ├── practice/
+│   │   │   ├── presentation/
+│   │   │   │   ├── setup_screen.dart
+│   │   │   │   ├── practice_screen.dart
+│   │   │   │   ├── processing_screen.dart
+│   │   │   │   └── widgets/
+│   │   │   │       ├── camera_preview.dart
+│   │   │   │       ├── audience_character.dart
+│   │   │   │       ├── recording_controls.dart
+│   │   │   │       └── practice_timer.dart
+│   │   │   ├── controllers/
+│   │   │   │   └── practice_controller.dart
+│   │   │   ├── services/
+│   │   │   │   ├── audio_recorder_service.dart
+│   │   │   │   ├── session_orchestrator.dart
+│   │   │   │   └── speech_metrics_calculator.dart
+│   │   │   └── providers/
+│   │   │       └── practice_provider.dart
+│   │   │
+│   │   ├── ai/
+│   │   │   ├── speech/
+│   │   │   │   ├── whisper_service.dart
+│   │   │   │   ├── speech_segmenter.dart
+│   │   │   │   └── transcript_processor.dart
+│   │   │   ├── vision/
+│   │   │   │   ├── mediapipe_pose_service.dart
+│   │   │   │   └── pose_metrics_calculator.dart
+│   │   │   ├── feedback/
+│   │   │   │   ├── rule_based_feedback.dart
+│   │   │   │   ├── local_llm_service.dart
+│   │   │   │   ├── feedback_prompt_builder.dart
+│   │   │   │   └── feedback_validator.dart
+│   │   │   └── model_management/
+│   │   │       ├── model_loader.dart
+│   │   │       └── model_manifest.dart
+│   │   │
+│   │   ├── feedback/
+│   │   │   ├── presentation/
+│   │   │   │   ├── feedback_screen.dart
+│   │   │   │   ├── transcript_review_screen.dart
+│   │   │   │   └── widgets/
+│   │   │   │       ├── speech_metric_card.dart
+│   │   │   │       ├── pose_feedback_card.dart
+│   │   │   │       └── coaching_tip_card.dart
+│   │   │   └── providers/
+│   │   │       └── feedback_provider.dart
+│   │   │
+│   │   ├── documents/
+│   │   │   ├── presentation/
+│   │   │   │   └── document_upload_screen.dart
+│   │   │   ├── services/
+│   │   │   │   ├── pdf_extraction_service.dart
+│   │   │   │   ├── docx_extraction_service.dart
+│   │   │   │   ├── readability_validator.dart
+│   │   │   │   └── concept_coverage_service.dart
+│   │   │   └── providers/
+│   │   │       └── document_provider.dart
+│   │   │
+│   │   ├── progress/
+│   │   │   ├── presentation/
+│   │   │   │   ├── progress_screen.dart
+│   │   │   │   └── session_history_screen.dart
+│   │   │   ├── services/
+│   │   │   │   ├── scoring_service.dart
+│   │   │   │   └── level_service.dart
+│   │   │   └── providers/
+│   │   │       └── progress_provider.dart
+│   │   │
+│   │   ├── profile/
+│   │   │   ├── presentation/
+│   │   │   │   └── profile_screen.dart
+│   │   │   └── providers/
+│   │   │       └── profile_provider.dart
+│   │   │
+│   │   └── settings/
+│   │       ├── presentation/
+│   │       │   ├── settings_screen.dart
+│   │       │   ├── privacy_screen.dart
+│   │       │   └── about_screen.dart
+│   │       └── services/
+│   │           └── data_deletion_service.dart
+│   │
+│   └── data/
+│       ├── local/
+│       │   ├── app_database.dart
+│       │   ├── tables/
+│       │   │   ├── users_table.dart
+│       │   │   ├── sessions_table.dart
+│       │   │   ├── speech_metrics_table.dart
+│       │   │   ├── pose_metrics_table.dart
+│       │   │   ├── feedback_table.dart
+│       │   │   ├── documents_table.dart
+│       │   │   └── star_transactions_table.dart
+│       │   ├── daos/
+│       │   │   ├── users_dao.dart
+│       │   │   ├── sessions_dao.dart
+│       │   │   └── progress_dao.dart
+│       │   └── migrations/
+│       ├── repositories/
+│       │   ├── user_repository.dart
+│       │   ├── session_repository.dart
+│       │   ├── document_repository.dart
+│       │   └── progress_repository.dart
+│       └── storage/
+│           ├── local_file_storage.dart
+│           └── model_file_storage.dart
+│
+├── android/
+│   ├── build.gradle.kts
+│   ├── settings.gradle.kts
+│   ├── gradle.properties
+│   └── app/
+│       ├── build.gradle.kts
+│       └── src/main/
+│           ├── AndroidManifest.xml
+│           ├── assets/
+│           │   ├── mediapipe/
+│           │   │   └── pose_landmarker_lite.task
+│           │   └── models/
+│           │       ├── whisper/
+│           │       │   └── ggml-base-q5_1.bin
+│           │       └── llm/
+│           │           └── qwen3-0.6b-q4_k_m.gguf
+│           ├── kotlin/com/hawkabuild/app/
+│           │   ├── MainActivity.kt
+│           │   ├── ai/
+│           │   │   ├── AiMethodChannel.kt
+│           │   │   ├── WhisperEngine.kt
+│           │   │   ├── PoseLandmarkerEngine.kt
+│           │   │   └── LlamaEngine.kt
+│           │   └── camera/
+│           │       └── PoseFrameProcessor.kt
+│           └── cpp/
+│               └── CMakeLists.txt
+│
+├── test/
+│   ├── speech_metrics_test.dart
+│   ├── scoring_service_test.dart
+│   ├── document_validator_test.dart
+│   └── feedback_validation_test.dart
+│
+├── integration_test/
+│   ├── offline_practice_test.dart
+│   ├── profile_lifecycle_test.dart
+│   └── session_persistence_test.dart
+│
+└── scripts/
+    ├── verify_model_hashes.py
+    └── prepare_model_assets.py
+
+
+
+Important implementation notes for this folder structure
+- Flutter will generate additional Android, build, Gradle-wrapper and platform files. Keep those generated project files rather than replacing them with only the illustrated tree.
+- Drift will generate files such as app_database.g.dart; don't manually edit generated code.
+- Model assets are shown with logical filenames. The Qwen filename is a proposed local name, not a verified upstream file name.
+- Large AI models should be copied or accessed from assets using a tested storage/loading strategy; don't assume every native runtime can read compressed APK assets directly.
+- Do not duplicate model files under both Flutter assets and Android assets. Choose one packaging approach per runtime.
+- Add CMake/native library sources only for the engines you actually compile. If using an AAR or Flutter plugin, some native directories may be unnecessary.
+- PDF/DOCX parsers must be chosen and license-checked before those services are implemented.
+- If your Android project uses Kotlin Gradle scripts, retain .gradle.kts; if Flutter generated Groovy .gradle files, keep that convention instead.
+7. Shared interface contracts: What each member must deliver
+This is the agreement your team should finalize before coding. These are illustrative Dart contracts, not complete implementations.
+
+abstract interface class SpeechRecognitionService {
+  Future<TranscriptionResult> transcribe(String audioPath);
+}
+
+abstract interface class PoseAnalysisService {
+  Future<PoseMetrics?> analyzeSession(String sessionId);
+}
+
+abstract interface class FeedbackService {
+  Future<FeedbackReport> generate({
+    required SpeechMetrics speech,
+    PoseMetrics? pose,
+    DocumentResult? document,
+    required String speakingGoal,
+  });
+}
+
+abstract interface class SessionRepository {
+  Future<void> saveSession(PracticeSession session);
+  Future<PracticeSession?> getSession(String id);
+  Future<List<PracticeSession>> getHistory(String profileId);
+  Future<void> deleteSession(String id);
+}
+
+
+
+Interface	Implemented by	Used by
+SpeechRecognitionService	Member 4	Alexis
+PoseAnalysisService	Member 4	Alexis
+FeedbackService	Member 4, with Alexis defining rules	Alexis
+SessionRepository	Gerardo	Alexis and Aldred
+DocumentService	Gerardo	Alexis
+PracticeController	Alexis	Aldred
+ProgressRepository	Gerardo	Alexis and Aldred
+Technical detail: For pose analysis, it is better to collect timestamped landmarks during recording and aggregate them after recording ends. The analyzeSession interface should access that collected data; it should not assume recorded video can magically be analyzed without a video processing pipeline.
+Similarly, a speech transcript and raw audio recording are different sources. Word count comes from the transcript, while reliable pause measurement needs audio timing or VAD.
+8. Individual team prompts
+These can be copied into your respective coding assistants.
+Aldred — Frontend
+ Copy
+Focus on complete Flutter screens, responsive design and integration with Alexis's controller—not AI model implementation.
+
+Alexis — Backend
+ Copy
+Focus on the complete pipeline, business rules and robust error handling, not SQLite schema or native model internals.
+
+Gerardo — Backend and Database
+ Copy
+Focus on persistence, documents and consistent shared data structures.
+
+Member 4 — AI Integrations
+ Copy
+Focus on model compatibility, native Android inference, output reliability and device benchmarks.
+
+
+9. Minimum device requirements and realistic limitations
+For planning, I suggest testing on a physical Android phone with 6–8 GB RAM or more. This is a development target, not a verified minimum requirement.
+The exact requirements depend on the phone's processor, quantization, runtime, recording duration and how many models remain loaded.
+Device	Suggested scope
+4 GB RAM	Whisper Tiny, MediaPipe Lite, rule-based feedback
+6–8 GB RAM	Try Whisper Base, MediaPipe Lite, optional small LLM
+12 GB+ RAM	Benchmark richer feedback and potentially larger models
+For the first build, process speech and video sequentially where practical. Unload unused AI engines between stages if needed.
+One serious technical constraint is the camera: MediaPipe requires suitable frames, while Whisper processes audio. The two should not be forced into a single real-time inference loop without performance testing.
+10. Final delivery requirements
+HAWKABUILD release checklist
+0/11
+
+
+
+[ ] APK installs successfully on your team's target Android phone
+[ ] Speech recording and local transcription work in airplane mode
+[ ] Pose landmarks produce valid, interpretable movement measurements
+[ ] Feedback uses actual metrics and provides useful improvement tips
+[ ] Audio-only mode works if the camera is denied
+[ ] Text-based PDFs can be extracted or rejected clearly
+[ ] Profiles and practice results persist after restarting the app
+[ ] Stars and levels use tested deterministic rules
+[ ] Privacy settings support deletion of profile data and recordings
+[ ] All shipped model files have documented versions, hashes and licenses
+[ ] No paid API keys, cloud dependencies or background model downloads are required
+ Copy release checklist
+Final decision for your team
+I would commit to this stack first:
+- Aldred: Flutter, Material 3, Riverpod.
+- Alexis: Dart application services, recording workflow, metrics, scoring logic.
+- Gerardo: SQLite, Drift, local profiles, document parsing, session persistence.
+- Member 4: whisper.cpp v1.9.4 + Whisper Base Multilingual Q5, MediaPipe Tasks Vision 0.10.35 + Pose Landmarker Lite, with Qwen3 0.6B as an optional feedback enhancement.
+These can be used without subscription fees, subject to checking the license of each shipped model asset, parser and dependency. No paid LLM API or cloud backend is necessary.
+Build priority: Recording → Whisper transcription → speech measurements → MediaPipe landmarks → evidence-based feedback → save in SQLite → progress dashboard.
+Once those seven stages run successfully together on a real phone in airplane mode, you have the essential HAWKABUILD product. Everything else should build on that tested foundation.
