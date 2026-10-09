@@ -48,3 +48,5 @@ app.*.map.json
 /ggml-base-q5_1.bin
 /assets/models/llm/*.gguf
 /assets/models/whisper/*.bin
+/android/app/src/main/assets/models/llm/*.gguf
+/android/app/src/main/assets/models/whisper/*.bin
