@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
-import '../../onboarding/presentation/welcome_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -15,6 +15,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _busy = false;
 
   @override
   void dispose() {
@@ -23,15 +24,33 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _onLogin() {
-    final username = _usernameController.text.trim();
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) =>
-            WelcomeScreen(nickname: username.isNotEmpty ? username : 'Speaker'),
-      ),
-    );
+  Future<void> _onLogin() async {
+    if (_busy) return;
+
+    setState(() => _busy = true);
+
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: _usernameController.text.trim(),
+        password: _passwordController.text,
+      );
+    } on FirebaseAuthException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error.message ?? 'Could not sign in.')),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not sign in. Check your connection.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   void _onRegister() {
@@ -41,63 +60,57 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  void _showForgotPasswordDialog() {
-    final emailController = TextEditingController();
-    showDialog<void>(
+  Future<void> _showForgotPasswordDialog() async {
+    final input = TextEditingController();
+
+    final email = await showDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-        title: const Row(
-          children: [
-            Icon(Icons.lock_reset_rounded, color: AppColors.blue),
-            SizedBox(width: 10),
-            Text(
-              'Reset Password',
-              style: TextStyle(fontWeight: FontWeight.w700),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Enter your username or email address and we will send you instructions to recover your account.',
-              style: TextStyle(fontSize: 14, color: AppColors.navySoft),
-            ),
-            const SizedBox(height: 18),
-            TextField(
-              controller: emailController,
-              decoration: const InputDecoration(
-                labelText: 'Username or Email',
-                prefixIcon: Icon(Icons.mail_outline_rounded),
-                hintText: 'e.g. speaker@voicemate.app',
-              ),
-            ),
-          ],
+        title: const Text('Reset password'),
+        content: TextField(
+          controller: input,
+          keyboardType: TextInputType.emailAddress,
+          decoration: const InputDecoration(labelText: 'Email'),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(dialogContext);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'Password recovery instructions sent to your email.',
-                  ),
-                  backgroundColor: AppColors.navy,
-                ),
-              );
-            },
-            child: const Text('Send Reset Link'),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, input.text.trim()),
+            child: const Text('Send reset link'),
           ),
         ],
       ),
     );
+
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    input.dispose();
+
+    if (email == null || email.isEmpty) return;
+
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Reset requested. Check your email.')),
+        );
+      }
+    } on FirebaseAuthException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error.message ?? 'Could not request reset.')),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not connect. Try again online.')),
+        );
+      }
+    }
   }
 
   @override
@@ -216,7 +229,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             SizedBox(
                               height: 52,
                               child: ElevatedButton(
-                                onPressed: _onLogin,
+                                onPressed: _busy ? null : _onLogin,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.navy,
                                   foregroundColor: Colors.white,
@@ -236,7 +249,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             SizedBox(
                               height: 50,
                               child: OutlinedButton(
-                                onPressed: _onRegister,
+                                onPressed: _busy ? null : _onRegister,
                                 child: const Text(
                                   'Register',
                                   style: TextStyle(

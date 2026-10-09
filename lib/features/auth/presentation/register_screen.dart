@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
-import '../../onboarding/presentation/welcome_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../../../app/app_providers.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -20,9 +21,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
 
   bool _obscurePassword = true;
+  bool _busy = false;
 
   // Reserved usernames to demonstrate uniqueness check
-  static const _takenUsernames = {'admin', 'speaker', 'user', 'test', 'voicemate'};
 
   @override
   void dispose() {
@@ -35,87 +36,98 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   bool get _isUsernameUnique {
-    final text = _usernameController.text.trim().toLowerCase();
-    if (text.isEmpty || text.length < 3) return false;
-    return !_takenUsernames.contains(text);
+    return RegExp(
+      r'^[^\s@]+@[^\s@]+\.[^\s@]+$',
+    ).hasMatch(_usernameController.text.trim());
   }
 
-  bool get _isUsernameTaken {
-    final text = _usernameController.text.trim().toLowerCase();
-    if (text.isEmpty) return false;
-    return _takenUsernames.contains(text);
-  }
+  bool get _isUsernameTaken => false;
 
   bool get _isPasswordValid => _passwordController.text.length >= 8;
 
-  void _next() {
+  Future<void> _next() async {
+    if (_busy) return;
+
     if (_step == 0) {
       if (_firstNameController.text.trim().isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please enter your first name to continue.'),
-            duration: Duration(seconds: 2),
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Enter your first name.')));
         return;
       }
+
       setState(() => _step = 1);
       return;
     }
 
     if (_step == 1) {
       if (_nicknameController.text.trim().isEmpty) {
-        // If nickname empty, default to first name
         _nicknameController.text = _firstNameController.text.trim();
       }
+
       setState(() => _step = 2);
       return;
     }
 
-    // Step 2 (Step 3 of 3): Validate username & password
-    if (_isUsernameTaken) {
+    if (!_isUsernameUnique || !_isPasswordValid) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('This username is already taken. Please pick another.'),
-          backgroundColor: AppColors.coral,
+          content: Text(
+            'Enter a valid email and a password of at least 8 characters.',
+          ),
         ),
       );
       return;
     }
 
-    if (!_isUsernameUnique) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter a unique username with at least 3 characters.'),
-          backgroundColor: AppColors.coral,
-        ),
+    setState(() => _busy = true);
+    registrationInProgress.value = true;
+
+    try {
+      final result = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: _usernameController.text.trim(),
+        password: _passwordController.text,
       );
-      return;
-    }
 
-    if (!_isPasswordValid) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Password must be at least 8 characters.'),
-          backgroundColor: AppColors.coral,
-        ),
+      final fullName =
+          '${_firstNameController.text.trim()} '
+                  '${_lastNameController.text.trim()}'
+              .trim();
+
+      final nickname = _nicknameController.text.trim();
+
+      await progressRepository.profiles.save(
+        userId: result.user!.uid,
+        fullName: fullName,
+        nickname: nickname,
+        language: 'English',
+        practicePurpose: 'Public Speaking',
+        onboardingComplete: false,
       );
-      return;
+
+      await result.user!.updateDisplayName(nickname);
+    } on FirebaseAuthException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error.message ?? 'Registration failed.')),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Setup could not finish. If your account was created, '
+              'sign in to continue setup.',
+            ),
+          ),
+        );
+      }
+    } finally {
+      registrationInProgress.value = false;
+
+      if (mounted) setState(() => _busy = false);
     }
-
-    // Proceed to Welcome Screen
-    final nickname = _nicknameController.text.trim().isNotEmpty
-        ? _nicknameController.text.trim()
-        : (_firstNameController.text.trim().isNotEmpty
-            ? _firstNameController.text.trim()
-            : 'Speaker');
-
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => WelcomeScreen(nickname: nickname),
-      ),
-    );
   }
 
   Future<bool> _confirmExit() async {
@@ -145,10 +157,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       transitionDuration: const Duration(milliseconds: 320),
       pageBuilder: (ctx, anim1, anim2) => const SizedBox.shrink(),
       transitionBuilder: (ctx, anim, secondaryAnim, child) {
-        final curved = CurvedAnimation(
-          parent: anim,
-          curve: Curves.easeOutBack,
-        );
+        final curved = CurvedAnimation(parent: anim, curve: Curves.easeOutBack);
         return ScaleTransition(
           scale: Tween<double>(begin: 0.82, end: 1.0).animate(curved),
           child: FadeTransition(
@@ -233,10 +242,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             tooltip: 'Back',
           ),
           actions: [
-            TextButton(
-              onPressed: _confirmExit,
-              child: const Text('Cancel'),
-            ),
+            TextButton(onPressed: _confirmExit, child: const Text('Cancel')),
           ],
           title: Text(
             'Step ${_step + 1} of 3',
@@ -267,7 +273,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             height: 6,
                             margin: EdgeInsets.only(right: index == 2 ? 0 : 8),
                             decoration: BoxDecoration(
-                              color: index <= _step ? AppColors.blue : AppColors.line,
+                              color: index <= _step
+                                  ? AppColors.blue
+                                  : AppColors.line,
                               borderRadius: BorderRadius.circular(8),
                             ),
                           ),
@@ -280,7 +288,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     Align(
                       alignment: Alignment.centerLeft,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 5,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.sky,
                           borderRadius: BorderRadius.circular(12),
@@ -305,7 +316,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     const SizedBox(height: 8),
                     Text(
                       stepSubtitles[_step],
-                      style: const TextStyle(fontSize: 14, color: AppColors.navySoft),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: AppColors.navySoft,
+                      ),
                     ),
                     const SizedBox(height: 28),
 
@@ -352,12 +366,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                         child: const Row(
                           children: [
-                            Icon(Icons.info_outline_rounded, size: 20, color: AppColors.blue),
+                            Icon(
+                              Icons.info_outline_rounded,
+                              size: 20,
+                              color: AppColors.blue,
+                            ),
                             SizedBox(width: 10),
                             Expanded(
                               child: Text(
                                 'This is how Voice Mate will warmly address you throughout your speech journey.',
-                                style: TextStyle(fontSize: 12, color: AppColors.navySoft),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.navySoft,
+                                ),
                               ),
                             ),
                           ],
@@ -370,8 +391,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         controller: _usernameController,
                         onChanged: (_) => setState(() {}),
                         decoration: const InputDecoration(
-                          labelText: 'Username',
-                          hintText: 'e.g. alex_speaks',
+                          labelText: 'Email',
+                          hintText: 'e.g. student@example.com',
                           prefixIcon: Icon(Icons.alternate_email_rounded),
                         ),
                       ),
@@ -394,9 +415,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           hintText: 'Enter at least 8 characters',
                           prefixIcon: const Icon(Icons.lock_outline_rounded),
                           suffixIcon: IconButton(
-                            tooltip: _obscurePassword ? 'Show password' : 'Hide password',
-                            onPressed: () =>
-                                setState(() => _obscurePassword = !_obscurePassword),
+                            tooltip: _obscurePassword
+                                ? 'Show password'
+                                : 'Hide password',
+                            onPressed: () => setState(
+                              () => _obscurePassword = !_obscurePassword,
+                            ),
                             icon: Icon(
                               _obscurePassword
                                   ? Icons.visibility_outlined
@@ -420,7 +444,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     SizedBox(
                       height: 54,
                       child: ElevatedButton(
-                        onPressed: _next,
+                        onPressed: _busy ? null : _next,
                         child: Text(
                           _step == 2 ? 'Proceed to Welcome Screen' : 'Continue',
                           style: const TextStyle(
@@ -507,7 +531,7 @@ class _UsernameIndicator extends StatelessWidget {
           SizedBox(width: 8),
           Expanded(
             child: Text(
-              'Username is unique and available!',
+              'Email format is valid; availability is checked on registration.',
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.green,
@@ -525,7 +549,7 @@ class _UsernameIndicator extends StatelessWidget {
         SizedBox(width: 8),
         Expanded(
           child: Text(
-            'Username must be at least 3 characters',
+            'Enter a valid email address.',
             style: TextStyle(fontSize: 12, color: AppColors.navySoft),
           ),
         ),
@@ -536,20 +560,21 @@ class _UsernameIndicator extends StatelessWidget {
 
 /// Indicator for password 8 min characters requirement
 class _PasswordIndicator extends StatelessWidget {
-  const _PasswordIndicator({
-    required this.length,
-    required this.isValid,
-  });
+  const _PasswordIndicator({required this.length, required this.isValid});
 
   final int length;
   final bool isValid;
 
   @override
   Widget build(BuildContext context) {
-    final color = isValid ? Colors.green : (length > 0 ? AppColors.coral : AppColors.navySoft);
+    final color = isValid
+        ? Colors.green
+        : (length > 0 ? AppColors.coral : AppColors.navySoft);
     final icon = isValid
         ? Icons.check_circle_rounded
-        : (length > 0 ? Icons.error_outline_rounded : Icons.info_outline_rounded);
+        : (length > 0
+              ? Icons.error_outline_rounded
+              : Icons.info_outline_rounded);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -579,7 +604,9 @@ class _PasswordIndicator extends StatelessWidget {
             value: (length / 8).clamp(0.0, 1.0),
             backgroundColor: AppColors.line,
             valueColor: AlwaysStoppedAnimation<Color>(
-              isValid ? Colors.green : (length >= 4 ? AppColors.yellow : AppColors.coral),
+              isValid
+                  ? Colors.green
+                  : (length >= 4 ? AppColors.yellow : AppColors.coral),
             ),
             minHeight: 4,
           ),

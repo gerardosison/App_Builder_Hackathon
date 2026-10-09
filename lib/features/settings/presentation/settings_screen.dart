@@ -28,9 +28,21 @@ class SettingsScreen extends StatelessWidget {
               const Expanded(child: Text('Dark mode')),
               Switch(
                 value: isDark,
-                onChanged: (value) => appThemeMode.value = value
-                    ? ThemeMode.dark
-                    : ThemeMode.light,
+                onChanged: (value) async {
+                  try {
+                    await setAppThemeMode(
+                      value ? ThemeMode.dark : ThemeMode.light,
+                    );
+                  } catch (_) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Could not save theme preference.'),
+                        ),
+                      );
+                    }
+                  }
+                },
               ),
             ],
           ),

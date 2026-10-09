@@ -24,15 +24,13 @@ class _WelcomeScreenState extends State<WelcomeScreen>
     curve: const Interval(0.35, 1.0, curve: Curves.easeInOut),
   );
 
-  late final Animation<Offset> _slideAnimation = Tween<Offset>(
-    begin: const Offset(0, 0.15),
-    end: Offset.zero,
-  ).animate(
-    CurvedAnimation(
-      parent: _controller,
-      curve: const Interval(0.35, 1.0, curve: Curves.easeOutCubic),
-    ),
-  );
+  late final Animation<Offset> _slideAnimation =
+      Tween<Offset>(begin: const Offset(0, 0.15), end: Offset.zero).animate(
+        CurvedAnimation(
+          parent: _controller,
+          curve: const Interval(0.35, 1.0, curve: Curves.easeOutCubic),
+        ),
+      );
 
   @override
   void dispose() {
@@ -41,7 +39,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
   }
 
   void _onLetsGo() {
-    Navigator.pushReplacement(
+    Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const TourScreen()),
     );
@@ -89,19 +87,19 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                 'Welcome, ${widget.nickname}!',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.5,
-                    ),
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5,
+                ),
               ),
               const SizedBox(height: 16),
 
-              // Fade in next "Let’s begin your journey towards better speaking!"
+              // Fade in next "Letâ€™s begin your journey towards better speaking!"
               FadeTransition(
                 opacity: _fadeAnimation,
                 child: SlideTransition(
                   position: _slideAnimation,
                   child: const Text(
-                    'Let’s begin your journey towards better speaking!',
+                    'Letâ€™s begin your journey towards better speaking!',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 18,
@@ -120,11 +118,8 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                 child: ElevatedButton(
                   onPressed: _onLetsGo,
                   child: const Text(
-                    'Let’s go',
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    'Letâ€™s go',
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
                   ),
                 ),
               ),

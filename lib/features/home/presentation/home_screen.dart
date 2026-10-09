@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
-import '../../auth/presentation/login_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'live_account_tabs.dart';
 import '../../practice/presentation/setup_screen.dart';
 import '../../settings/presentation/settings_screen.dart';
 
@@ -58,10 +59,10 @@ class _HomeScreenState extends State<HomeScreen> {
     late final Widget content;
     switch (_selected) {
       case 0:
-        content = const SizedBox.shrink();
+        content = const LiveHomeTab();
         break;
       case 1:
-        content = const SizedBox.shrink();
+        content = const LiveProgressTab();
         break;
       case 2:
         content = _PracticeTabView(
@@ -74,7 +75,7 @@ class _HomeScreenState extends State<HomeScreen> {
         );
         break;
       case 3:
-        content = const SizedBox.shrink();
+        content = const LiveProfileTab();
         break;
       case 4:
         content = const _SettingsTabView();
@@ -103,7 +104,7 @@ class _HomeScreenState extends State<HomeScreen> {
       pageBuilder: (context, animation, secondaryAnimation) => AlertDialog(
         title: const Text('Log out?'),
         content: const Text(
-          'You can come back anytime and continue your speaking journey.',
+          'Signing in again requires internet. Unsynced progress remains on this device for this account.',
         ),
         actions: [
           TextButton(
@@ -129,10 +130,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     if (shouldLogout == true && mounted) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-        (route) => false,
-      );
+      await FirebaseAuth.instance.signOut();
     }
   }
 }
@@ -291,322 +289,10 @@ class _FloatingNavBar extends StatelessWidget {
 // -----------------------------------------------------------------------------
 // TAB 0: HOME
 // -----------------------------------------------------------------------------
-class _HomeTabView extends StatelessWidget {
-  const _HomeTabView({required this.onLogout});
-  final VoidCallback onLogout;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'VOICE MATE',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                letterSpacing: 1.8,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.yellow,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.navy, width: 1.2),
-                  ),
-                  child: const Row(
-                    children: [
-                      Text(
-                        '7 DAYS',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 11,
-                          color: AppColors.navy,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  onPressed: onLogout,
-                  tooltip: 'Log out',
-                  style: IconButton.styleFrom(
-                    foregroundColor: AppColors.navy,
-                    backgroundColor: AppColors.sky,
-                  ),
-                  icon: const Icon(Icons.logout_rounded, size: 20),
-                ),
-              ],
-            ),
-          ],
-        ),
-        const SizedBox(height: 28),
-        Text(
-          'Good morning, speaker!',
-          style: Theme.of(context).textTheme.displaySmall,
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'Ready for a small win today? Take on today’s speech exercise.',
-          style: TextStyle(fontSize: 15, color: AppColors.navySoft),
-        ),
-        const SizedBox(height: 24),
-
-        // Warm up card
-        Container(
-          padding: const EdgeInsets.all(22),
-          decoration: BoxDecoration(
-            color: AppColors.navy,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x1814213D),
-                offset: Offset(4, 5),
-                blurRadius: 0,
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.yellow,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Text(
-                  "TODAY'S WARM-UP",
-                  style: TextStyle(
-                    color: AppColors.navy,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 11,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 14),
-              const Text(
-                'Tell a story in 60 seconds',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Practice structuring a beginning, middle, and climax with natural pacing.',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 13,
-                  height: 1.4,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 20),
-
-        // Stat cards
-        const Row(
-          children: [
-            Expanded(
-              child: _StatCard(
-                title: '7',
-                label: 'Day streak',
-                icon: Icons.local_fire_department_rounded,
-                color: AppColors.sky,
-              ),
-            ),
-            SizedBox(width: 14),
-            Expanded(
-              child: _StatCard(
-                title: '12',
-                label: 'Sessions completed',
-                icon: Icons.check_circle_outline_rounded,
-                color: AppColors.mint,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _StatCard extends StatelessWidget {
-  const _StatCard({
-    required this.title,
-    required this.label,
-    required this.icon,
-    required this.color,
-  });
-
-  final String title;
-  final String label;
-  final IconData icon;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.line),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: AppColors.navy, size: 24),
-          const SizedBox(height: 10),
-          Text(
-            title,
-            style: Theme.of(
-              context,
-            ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: const TextStyle(fontSize: 12, color: AppColors.navySoft),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 // -----------------------------------------------------------------------------
 // TAB 1: PROGRESS
 // -----------------------------------------------------------------------------
-class _ProgressTabView extends StatelessWidget {
-  const _ProgressTabView();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text('Progress', style: Theme.of(context).textTheme.displaySmall),
-        const SizedBox(height: 8),
-        const Text(
-          'Track your speech metrics, pacing trends, and consistency.',
-          style: TextStyle(color: AppColors.navySoft),
-        ),
-        const SizedBox(height: 24),
-
-        // Fluency score card
-        Container(
-          padding: const EdgeInsets.all(22),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: AppColors.line),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 72,
-                height: 72,
-                decoration: const BoxDecoration(
-                  color: AppColors.mint,
-                  shape: BoxShape.circle,
-                ),
-                child: const Center(
-                  child: Text(
-                    '88%',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 20,
-                      color: AppColors.navy,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 18),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Overall Fluency Score',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 16,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      '+5% improvement since last week. Excellent pacing consistency.',
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        color: AppColors.navySoft,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        // Metrics breakdown
-        const _MetricRow(label: 'Clarity & Articulation', score: '91%'),
-        const SizedBox(height: 10),
-        const _MetricRow(label: 'Pacing (135 words/min)', score: '88%'),
-        const SizedBox(height: 10),
-        const _MetricRow(label: 'Minimal Filler Words', score: '85%'),
-      ],
-    );
-  }
-}
-
-class _MetricRow extends StatelessWidget {
-  const _MetricRow({required this.label, required this.score});
-
-  final String label;
-  final String score;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-      decoration: BoxDecoration(
-        color: AppColors.paper,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.line),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
-          Text(
-            score,
-            style: const TextStyle(
-              fontWeight: FontWeight.w800,
-              color: AppColors.blue,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 // -----------------------------------------------------------------------------
 // TAB 2: PRACTICE (EMPHASIZED MIDDLE ITEM)
@@ -700,126 +386,6 @@ class _PracticeTabView extends StatelessWidget {
 // -----------------------------------------------------------------------------
 // TAB 3: PROFILE
 // -----------------------------------------------------------------------------
-class _ProfileTabView extends StatelessWidget {
-  const _ProfileTabView();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text('Profile', style: Theme.of(context).textTheme.displaySmall),
-        const SizedBox(height: 8),
-        const Text('Your speaker stats, rank, and achievements.'),
-        const SizedBox(height: 24),
-
-        // User badge card
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: AppColors.sky,
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: AppColors.navy, width: 1.5),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 58,
-                height: 58,
-                decoration: const BoxDecoration(
-                  color: AppColors.navy,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.person_rounded,
-                  color: Colors.white,
-                  size: 32,
-                ),
-              ),
-              const SizedBox(width: 16),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Speaker Profile',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Level 4: Eloquent Speaker',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.navySoft,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 18),
-
-        // Badges container
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: AppColors.line),
-          ),
-          child: const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'BADGES & MILESTONES',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.blue,
-                ),
-              ),
-              SizedBox(height: 14),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _Badge(icon: '🏅', name: '7-Day Streak'),
-                  _Badge(icon: '🎙️', name: '10+ Speeches'),
-                  _Badge(icon: '⭐', name: '90% Clarity'),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _Badge extends StatelessWidget {
-  const _Badge({required this.icon, required this.name});
-  final String icon;
-  final String name;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(icon, style: const TextStyle(fontSize: 26)),
-        const SizedBox(height: 6),
-        Text(
-          name,
-          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
-        ),
-      ],
-    );
-  }
-}
 
 // -----------------------------------------------------------------------------
 // TAB 4: SETTINGS (WITH ABOUT SECTION)
