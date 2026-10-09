@@ -111,6 +111,11 @@ abstract final class AppTheme {
         titleTextStyle: textTheme.headlineSmall,
         iconTheme: IconThemeData(color: scheme.primary),
       ),
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
+        },
+      ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: card,
         indicatorColor: navIndicator,
@@ -145,6 +150,20 @@ abstract final class AppTheme {
           minimumSize: const Size.fromHeight(52),
           textStyle: textTheme.labelLarge,
           shape: const StadiumBorder(),
+        ).copyWith(
+          backgroundColor: WidgetStateProperty.resolveWith((states) =>
+              states.contains(WidgetState.hovered) ||
+                      states.contains(WidgetState.pressed) ||
+                      states.contains(WidgetState.focused)
+                  ? scheme.primary
+                  : scheme.primaryContainer),
+          foregroundColor: WidgetStateProperty.resolveWith((states) =>
+              states.contains(WidgetState.hovered) ||
+                      states.contains(WidgetState.pressed) ||
+                      states.contains(WidgetState.focused)
+                  ? scheme.onPrimary
+                  : scheme.onPrimaryContainer),
+          side: WidgetStatePropertyAll(BorderSide(color: scheme.primary)),
         ),
       ),
       textButtonTheme: TextButtonThemeData(

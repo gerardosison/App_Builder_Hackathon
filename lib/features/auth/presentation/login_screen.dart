@@ -15,6 +15,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _showLoginForm = false;
 
   @override
   void dispose() {
@@ -74,28 +75,36 @@ class _LoginScreenState extends State<LoginScreen> {
                 hintText: 'e.g. speaker@pipspeak.app',
               ),
             ),
+            const SizedBox(height: 20),
+            Row(children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text('Cancel', maxLines: 1,
+                      overflow: TextOverflow.ellipsis),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(dialogContext);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Password recovery instructions sent to your email.',
+                        ),
+                        backgroundColor: AppColors.navy,
+                      ),
+                    );
+                  },
+                  child: const Text('Send Link', maxLines: 1,
+                      overflow: TextOverflow.ellipsis),
+                ),
+              ),
+            ]),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(dialogContext);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'Password recovery instructions sent to your email.',
-                  ),
-                  backgroundColor: AppColors.navy,
-                ),
-              );
-            },
-            child: const Text('Send Reset Link'),
-          ),
-        ],
       ),
     );
   }
@@ -117,21 +126,66 @@ class _LoginScreenState extends State<LoginScreen> {
                   height: viewportHeight,
                   child: Column(
                     children: [
-                      // The landing area expands while the form keeps its natural height.
+                      // The hero moves up as the login form rises into view.
                       Expanded(
-                        child: Center(
+                        child: AnimatedAlign(
+                          duration: const Duration(milliseconds: 520),
+                          curve: Curves.easeInOutCubic,
+                          alignment: _showLoginForm
+                              ? Alignment.topCenter
+                              : Alignment.center,
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 24,
                               vertical: 8,
                             ),
-                            child: _LandingHero(),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const _LandingHero(),
+                                if (!_showLoginForm) ...[
+                                  const SizedBox(height: 24),
+                                  SizedBox(
+                                    width: 220,
+                                    height: 52,
+                                    child: ElevatedButton(
+                                      onPressed: () => setState(
+                                          () => _showLoginForm = true),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.white,
+                                        foregroundColor: AppColors.navy,
+                                      ),
+                                      child: const Text('Begin'),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
                           ),
                         ),
                       ),
 
-                      // The form is anchored to the bottom and sized by its content.
-                      Container(
+                      // Animate the existing form upward from the bottom edge.
+                      AnimatedSize(
+                        duration: const Duration(milliseconds: 520),
+                        curve: Curves.easeInOutCubic,
+                        alignment: Alignment.topCenter,
+                        child: _showLoginForm
+                            ? _loginForm(context)
+                            : const SizedBox(width: double.infinity),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _loginForm(BuildContext context) => Container(
                         width: double.infinity,
                         padding: const EdgeInsets.fromLTRB(32, 32, 32, 32),
                         decoration: BoxDecoration(
@@ -248,17 +302,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ],
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
-      ),
-    );
-  }
+                      );
 }
 
 /// Landing area hero: Blank rounded square logo, placeholder text & slogan

@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/app_router.dart';
-import '../../../app/theme/app_theme.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/widgets/pip_misc.dart';
-import '../../settings/presentation/settings_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({
@@ -43,7 +41,15 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        body: child ?? const HomeLandingScreen(),
+        body: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 240),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          child: KeyedSubtree(
+            key: ValueKey(location),
+            child: child ?? const HomeLandingScreen(),
+          ),
+        ),
         bottomNavigationBar: Padding(
           padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
           child: Container(
@@ -182,14 +188,23 @@ class HomeLandingScreen extends StatelessWidget {
           'You can come back anytime and continue your speaking journey.',
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Stay here'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Log out'),
-          ),
+          Row(children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Stay here', maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Log out', maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
+              ),
+            ),
+          ]),
         ],
       ),
     );
@@ -202,6 +217,11 @@ class HomeLandingScreen extends StatelessWidget {
           context,
           title: 'PipSpeak',
           showBack: false,
+          centerTitle: false,
+          titleStyle: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            color: Theme.of(context).colorScheme.primary,
+            fontWeight: FontWeight.w800,
+          ),
           actions: [
             IconButton(
               tooltip: 'Log out',
@@ -366,296 +386,5 @@ class _StatCard extends StatelessWidget {
         ],
       ),
     );
-  }
-}
-
-// -----------------------------------------------------------------------------
-// TAB 1: PROGRESS
-// -----------------------------------------------------------------------------
-class _ProgressTabView extends StatelessWidget {
-  const _ProgressTabView();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text('Progress', style: Theme.of(context).textTheme.displaySmall),
-        const SizedBox(height: 8),
-        const Text(
-          'Track your speech metrics, pacing trends, and consistency.',
-          style: TextStyle(color: AppColors.navySoft),
-        ),
-        const SizedBox(height: 24),
-
-        // Fluency score card
-        Container(
-          padding: const EdgeInsets.all(22),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: AppColors.line),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 72,
-                height: 72,
-                decoration: const BoxDecoration(
-                  color: AppColors.mint,
-                  shape: BoxShape.circle,
-                ),
-                child: const Center(
-                  child: Text(
-                    '88%',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 20,
-                      color: AppColors.navy,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 18),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Overall Fluency Score',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 16,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      '+5% improvement since last week. Excellent pacing consistency.',
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        color: AppColors.navySoft,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        // Metrics breakdown
-        const _MetricRow(label: 'Clarity & Articulation', score: '91%'),
-        const SizedBox(height: 10),
-        const _MetricRow(label: 'Pacing (135 words/min)', score: '88%'),
-        const SizedBox(height: 10),
-        const _MetricRow(label: 'Minimal Filler Words', score: '85%'),
-      ],
-    );
-  }
-}
-
-class _MetricRow extends StatelessWidget {
-  const _MetricRow({required this.label, required this.score});
-
-  final String label;
-  final String score;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-      decoration: BoxDecoration(
-        color: AppColors.paper,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.line),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
-          Text(
-            score,
-            style: const TextStyle(
-              fontWeight: FontWeight.w800,
-              color: AppColors.blue,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// -----------------------------------------------------------------------------
-// TAB 2: PRACTICE (EMPHASIZED MIDDLE ITEM)
-// -----------------------------------------------------------------------------
-class _PracticeTabView extends StatelessWidget {
-  const _PracticeTabView({required this.onStart});
-
-  final VoidCallback onStart;
-
-  @override
-  Widget build(BuildContext context) => SizedBox(
-    height: (MediaQuery.sizeOf(context).height - 180).clamp(
-      320.0,
-      double.infinity,
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text('Practice', style: Theme.of(context).textTheme.displaySmall),
-        const SizedBox(height: 8),
-        const Text(
-          'Build your speaking skills with AI-powered coaching and feedback.',
-          style: TextStyle(color: AppColors.navySoft),
-        ),
-        const SizedBox(height: 10),
-        SizedBox(
-          width: double.infinity,
-          height: 52,
-          child: ElevatedButton(
-            onPressed: onStart,
-            child: const Text('Start Live Practice'),
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-// -----------------------------------------------------------------------------
-// TAB 3: PROFILE
-// -----------------------------------------------------------------------------
-class _ProfileTabView extends StatelessWidget {
-  const _ProfileTabView();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text('Profile', style: Theme.of(context).textTheme.displaySmall),
-        const SizedBox(height: 8),
-        const Text('Your speaker stats, rank, and achievements.'),
-        const SizedBox(height: 24),
-
-        // User badge card
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: AppColors.sky,
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: AppColors.navy, width: 1.5),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 58,
-                height: 58,
-                decoration: const BoxDecoration(
-                  color: AppColors.navy,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.person_rounded,
-                  color: Colors.white,
-                  size: 32,
-                ),
-              ),
-              const SizedBox(width: 16),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Speaker Profile',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Level 4: Eloquent Speaker',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.navySoft,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 18),
-
-        // Badges container
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: AppColors.line),
-          ),
-          child: const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'BADGES & MILESTONES',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.blue,
-                ),
-              ),
-              SizedBox(height: 14),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _Badge(icon: '🏅', name: '7-Day Streak'),
-                  _Badge(icon: '🎙️', name: '10+ Speeches'),
-                  _Badge(icon: '⭐', name: '90% Clarity'),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _Badge extends StatelessWidget {
-  const _Badge({required this.icon, required this.name});
-  final String icon;
-  final String name;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(icon, style: const TextStyle(fontSize: 26)),
-        const SizedBox(height: 6),
-        Text(
-          name,
-          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
-        ),
-      ],
-    );
-  }
-}
-
-// -----------------------------------------------------------------------------
-// TAB 4: SETTINGS (WITH ABOUT SECTION)
-// -----------------------------------------------------------------------------
-class _SettingsTabView extends StatelessWidget {
-  const _SettingsTabView();
-
-  @override
-  Widget build(BuildContext context) {
-    return const SettingsScreen();
   }
 }

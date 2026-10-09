@@ -74,86 +74,6 @@ class _PersonalizationScreenState extends State<PersonalizationScreen> {
     }
   }
 
-  void _showMultiSelectDropdown() {
-    showModalBottomSheet<void>(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setModalState) {
-          return SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Select Practice Goals',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close_rounded),
-                        onPressed: () => Navigator.pop(ctx),
-                      ),
-                    ],
-                  ),
-                  const Text(
-                    'Select all that apply to your speaking journey',
-                    style: TextStyle(fontSize: 13, color: AppColors.navySoft),
-                  ),
-                  const SizedBox(height: 14),
-                  ..._practiceOptions.map((option) {
-                    final selected = _selectedPractices.contains(option);
-                    return CheckboxListTile(
-                      value: selected,
-                      title: Text(
-                        option,
-                        style: TextStyle(
-                          fontWeight: selected
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                        ),
-                      ),
-                      activeColor: AppColors.blue,
-                      controlAffinity: ListTileControlAffinity.leading,
-                      contentPadding: EdgeInsets.zero,
-                      onChanged: (val) {
-                        setModalState(() {
-                          if (val == true) {
-                            _selectedPractices.add(option);
-                          } else {
-                            _selectedPractices.remove(option);
-                          }
-                        });
-                        setState(() {});
-                      },
-                    );
-                  }),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      child: const Text('Confirm Selection'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final isLanguagePage = _page == 0;
@@ -164,6 +84,15 @@ class _PersonalizationScreenState extends State<PersonalizationScreen> {
         title: 'Preference ${_page + 1} of 2',
         showBack: _page > 0,
         onBack: _previous,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const HomeScreen()),
+            ),
+            child: const Text('Skip'),
+          ),
+        ],
       ),
       body: SafeArea(
         child: Padding(

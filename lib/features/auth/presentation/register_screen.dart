@@ -181,20 +181,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 14, color: AppColors.navySoft),
               ),
-              actionsAlignment: MainAxisAlignment.spaceEvenly,
+              actionsAlignment: MainAxisAlignment.center,
               actions: [
-                OutlinedButton(
-                  onPressed: () => Navigator.of(ctx).pop(true),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.coral,
-                    side: const BorderSide(color: AppColors.coral),
+                Row(children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(ctx).pop(true),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.coral,
+                        side: const BorderSide(color: AppColors.coral),
+                      ),
+                      child: const Text('Cancel registration',
+                          textAlign: TextAlign.center),
+                    ),
                   ),
-                  child: const Text('Cancel registration'),
-                ),
-                ElevatedButton(
-                  onPressed: () => Navigator.of(ctx).pop(false),
-                  child: const Text('Continue registration'),
-                ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.of(ctx).pop(false),
+                      child: const Text('Continue registration',
+                          textAlign: TextAlign.center),
+                    ),
+                  ),
+                ]),
               ],
             ),
           ),

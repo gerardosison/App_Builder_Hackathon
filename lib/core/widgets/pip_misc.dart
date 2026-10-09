@@ -84,14 +84,17 @@ PreferredSizeWidget pipAppBar(
   bool showBack = true,
   VoidCallback? onBack,
   Widget? trailingChip,
+  bool? centerTitle,
+  TextStyle? titleStyle,
 }) {
   final text = Theme.of(context).textTheme;
   final scheme = Theme.of(context).colorScheme;
   return AppBar(
     leading: showBack ? PipBackButton(onPressed: onBack) : null,
     automaticallyImplyLeading: false,
+    centerTitle: centerTitle,
     title: Text(title,
-        style: text.headlineSmall?.copyWith(color: scheme.primary)),
+        style: titleStyle ?? text.headlineSmall?.copyWith(color: scheme.primary)),
     actions: [
       ...?actions,
       if (trailingChip != null)

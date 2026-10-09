@@ -7,7 +7,6 @@ import '../../../app/app_providers.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/widgets/pip_cards.dart';
-import '../../../core/widgets/pip_chips.dart';
 import '../../../core/widgets/pip_misc.dart';
 
 /// Settings — appearance 3-way switcher, language, reminders,
@@ -22,10 +21,7 @@ class SettingsScreen extends ConsumerWidget {
     final themeMode = ref.watch(themeModeProvider);
 
     return Scaffold(
-      appBar: pipAppBar(context,
-          title: 'Settings',
-          trailingChip: const SkyBadge(
-              label: 'Live Sync', icon: Icons.verified)),
+      appBar: pipAppBar(context, title: 'Settings'),
       body: SafeArea(
         child: Align(
           alignment: Alignment.topCenter,
@@ -158,8 +154,11 @@ class SettingsScreen extends ConsumerWidget {
             duration: const Duration(milliseconds: 180),
             padding: const EdgeInsets.symmetric(vertical: 9),
             decoration: BoxDecoration(
-              color: sel ? scheme.surfaceContainerLowest : null,
+              color: sel ? scheme.primary : scheme.surfaceContainerHigh,
               borderRadius: BorderRadius.circular(AppTheme.pillRadius),
+              border: Border.all(
+                color: sel ? scheme.primary : scheme.outlineVariant,
+              ),
               boxShadow: sel ? AppColors.cardShadow(1) : null,
             ),
             child: Row(
@@ -167,15 +166,12 @@ class SettingsScreen extends ConsumerWidget {
                 children: [
                   Icon(icon,
                       size: 18,
-                      color: sel
-                          ? scheme.primary
-                          : scheme.onSurfaceVariant),
+                      color: sel ? scheme.onPrimary : scheme.primary),
                   const SizedBox(width: 5),
                   Text(label,
                       style: text.labelMedium?.copyWith(
-                          color: sel
-                              ? scheme.primary
-                              : scheme.onSurfaceVariant)),
+                          color: sel ? scheme.onPrimary : scheme.primary,
+                          fontWeight: FontWeight.w700)),
                 ]),
           ),
         ),

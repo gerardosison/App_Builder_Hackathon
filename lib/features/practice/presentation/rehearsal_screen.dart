@@ -7,8 +7,6 @@ import '../../../app/app_router.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/widgets/pip_buttons.dart';
 import '../../../core/widgets/pip_chips.dart';
-import 'widgets/audience_character.dart';
-import 'widgets/camera_preview.dart';
 import 'widgets/live_meters.dart';
 import 'widgets/waveform.dart';
 

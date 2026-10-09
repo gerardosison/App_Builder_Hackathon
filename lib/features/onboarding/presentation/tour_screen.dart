@@ -137,7 +137,9 @@ class _TourScreenState extends State<TourScreen> {
                         right: index == _pages.length - 1 ? 0 : 6,
                       ),
                       decoration: BoxDecoration(
-                        color: index <= _page ? AppColors.blue : AppColors.line,
+                        color: index <= _page
+                            ? AppColors.blue
+                            : AppColors.sky,
                         borderRadius: BorderRadius.circular(6),
                       ),
                     ),
