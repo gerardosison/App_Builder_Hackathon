@@ -15,9 +15,9 @@ class LocalDocumentService implements DocumentService {
     PdfExtractionService? pdfExtractor,
     DocxExtractionService? docxExtractor,
     LocalLlmService? llm,
-  })  : _pdfExtractor = pdfExtractor ?? PdfExtractionService(),
-        _docxExtractor = docxExtractor ?? DocxExtractionService(),
-        _llm = llm ?? LocalLlmService();
+  }) : _pdfExtractor = pdfExtractor ?? PdfExtractionService(),
+       _docxExtractor = docxExtractor ?? DocxExtractionService(),
+       _llm = llm ?? LocalLlmService();
 
   final PdfExtractionService _pdfExtractor;
   final DocxExtractionService _docxExtractor;
@@ -27,7 +27,7 @@ class LocalDocumentService implements DocumentService {
   Future<DocumentResult> analyze(String filePath) async {
     final file = File(filePath);
     if (!await file.exists()) {
-      throw const AnalysisFailure('Hindi makita ang napiling file.');
+      throw const AnalysisFailure('The selected file could not be found.');
     }
 
     final extension = p.extension(filePath).toLowerCase();
@@ -65,7 +65,10 @@ class LocalDocumentService implements DocumentService {
     final covered = _section(response, 'COVERED TOPICS');
     final weak = _section(response, 'MISSING OR WEAK TOPICS');
     final suggestions = _section(response, 'SPEECH IMPROVEMENTS');
-    final words = extractedText.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length;
+    final words = extractedText
+        .split(RegExp(r'\s+'))
+        .where((w) => w.isNotEmpty)
+        .length;
     return DocumentResult(
       documentId: '${DateTime.now().millisecondsSinceEpoch}',
       title: p.basename(filePath),
@@ -80,9 +83,9 @@ class LocalDocumentService implements DocumentService {
 
   bool _isUnreadable(String text) {
     if (text.trim().length < 20) return true;
-    final unusual = RegExp(r'[^\w\s.,!?;:()\[\]{}\-\u00C0-\u024F]')
-        .allMatches(text)
-        .length;
+    final unusual = RegExp(
+      r'[^\w\s.,!?;:()\[\]{}\-\u00C0-\u024F]',
+    ).allMatches(text).length;
     return unusual > text.length * 0.4;
   }
 
@@ -114,7 +117,9 @@ class LocalDocumentService implements DocumentService {
     return answer
         .substring(bodyStart + 1, end)
         .split('\n')
-        .map((line) => line.replaceFirst(RegExp(r'^\s*[-*•\d.)]+\s*'), '').trim())
+        .map(
+          (line) => line.replaceFirst(RegExp(r'^\s*[-*•\d.)]+\s*'), '').trim(),
+        )
         .where((line) => line.isNotEmpty && line.toLowerCase() != 'none')
         .take(3)
         .toList();

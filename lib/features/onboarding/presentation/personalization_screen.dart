@@ -1,19 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../../app/app_providers.dart';
+import '../../../app/app_router.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../core/widgets/pip_misc.dart';
-import '../../home/presentation/home_screen.dart';
 
-class PersonalizationScreen extends StatefulWidget {
+class PersonalizationScreen extends ConsumerStatefulWidget {
   const PersonalizationScreen({super.key, this.initialStep = 0});
 
   final int initialStep;
 
   @override
-  State<PersonalizationScreen> createState() => _PersonalizationScreenState();
+  ConsumerState<PersonalizationScreen> createState() =>
+      _PersonalizationScreenState();
 }
 
-class _PersonalizationScreenState extends State<PersonalizationScreen> {
+class _PersonalizationScreenState extends ConsumerState<PersonalizationScreen> {
   late int _page;
 
   @override
@@ -61,11 +66,33 @@ class _PersonalizationScreenState extends State<PersonalizationScreen> {
         );
         return;
       }
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
+      _finish();
+    }
+  }
+
+  /// Saves preferences locally (synced later) and opens Home.
+  Future<void> _finish() async {
+    final uid = ref.read(currentUidProvider);
+    if (uid != null) {
+      final repo = ref.read(profileRepositoryProvider);
+      final profile = await repo.get(uid);
+      final language = _languages.firstWhere(
+        (l) => '${l.flag} ${l.name}' == _selectedLanguage,
+        orElse: () => _languages.first,
+      );
+      ref.read(selectedLanguageProvider.notifier).state = language.code;
+      await repo.save(
+        userId: uid,
+        fullName: profile?.fullName ?? 'Speaker',
+        nickname: profile?.nickname ?? '',
+        language: language.name,
+        practicePurpose: _practiceOptions
+            .where(_selectedPractices.contains)
+            .join(', '),
+        onboardingComplete: true,
       );
     }
+    if (mounted) context.go(AppRoutes.home);
   }
 
   void _previous() {
@@ -84,15 +111,7 @@ class _PersonalizationScreenState extends State<PersonalizationScreen> {
         title: 'Preference ${_page + 1} of 2',
         showBack: _page > 0,
         onBack: _previous,
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => const HomeScreen()),
-            ),
-            child: const Text('Skip'),
-          ),
-        ],
+        actions: [TextButton(onPressed: _finish, child: const Text('Skip'))],
       ),
       body: SafeArea(
         child: Padding(

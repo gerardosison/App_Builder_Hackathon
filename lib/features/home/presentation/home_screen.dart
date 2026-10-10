@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/app_providers.dart';
 import '../../../app/app_router.dart';
+import '../../../core/models/user_profile.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/widgets/pip_misc.dart';
 
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({
-    super.key,
-    this.location = AppRoutes.home,
-    this.child,
-  });
+  const HomeScreen({super.key, this.location = AppRoutes.home, this.child});
 
   final String location;
   final Widget? child;
@@ -41,63 +40,75 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        body: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 240),
-          switchInCurve: Curves.easeOutCubic,
-          switchOutCurve: Curves.easeInCubic,
-          child: KeyedSubtree(
-            key: ValueKey(location),
-            child: child ?? const HomeLandingScreen(),
+    body: AnimatedSwitcher(
+      duration: const Duration(milliseconds: 240),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      child: KeyedSubtree(
+        key: ValueKey(location),
+        child: child ?? const HomeLandingScreen(),
+      ),
+    ),
+    bottomNavigationBar: Padding(
+      padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.7),
+            width: 1,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Theme.of(
+                context,
+              ).colorScheme.shadow.withValues(alpha: 0.10),
+              blurRadius: 18,
+              offset: const Offset(0, 5),
+            ),
+            const BoxShadow(
+              color: Color.fromRGBO(255, 255, 255, 0.55),
+              blurRadius: 2,
+              offset: Offset(0, 1),
+            ),
+          ],
         ),
-        bottomNavigationBar: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceContainerLowest,
-              borderRadius: BorderRadius.circular(30),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.7),
-                width: 1,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .shadow
-                      .withValues(alpha: 0.10),
-                  blurRadius: 18,
-                  offset: const Offset(0, 5),
+        child: SafeArea(
+          top: false,
+          child: SizedBox(
+            height: 70,
+            child: Row(
+              children: [
+                _destination(context, 0, Icons.home_outlined, 'Home'),
+                _destination(
+                  context,
+                  1,
+                  Icons.description_outlined,
+                  'Documents',
                 ),
-                const BoxShadow(
-                  color: Color.fromRGBO(255, 255, 255, 0.55),
-                  blurRadius: 2,
-                  offset: Offset(0, 1),
+                _destination(context, 2, Icons.mic_rounded, 'Practice'),
+                _destination(context, 3, Icons.trending_up_rounded, 'Progress'),
+                _destination(
+                  context,
+                  4,
+                  Icons.person_outline_rounded,
+                  'Profile',
                 ),
               ],
             ),
-            child: SafeArea(
-              top: false,
-              child: SizedBox(
-                height: 70,
-                child: Row(
-                  children: [
-                    _destination(context, 0, Icons.home_outlined, 'Home'),
-                    _destination(
-                        context, 1, Icons.description_outlined, 'Documents'),
-                    _destination(context, 2, Icons.mic_rounded, 'Practice'),
-                    _destination(context, 3, Icons.trending_up_rounded, 'Progress'),
-                    _destination(context, 4, Icons.person_outline_rounded, 'Profile'),
-                  ],
-                ),
-              ),
-            ),
           ),
         ),
-      );
+      ),
+    ),
+  );
 
   Widget _destination(
-      BuildContext context, int index, IconData icon, String label) {
+    BuildContext context,
+    int index,
+    IconData icon,
+    String label,
+  ) {
     final selected = index == _selectedIndex;
     final colors = Theme.of(context).colorScheme;
     if (index == 2) {
@@ -138,13 +149,13 @@ class HomeScreen extends StatelessWidget {
                   ),
                   child: Icon(icon, color: Colors.white, size: 28),
                 ),
-                Text(label,
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          fontSize: 9,
-                          color: selected
-                              ? colors.primary
-                              : colors.onSurfaceVariant,
-                        )),
+                Text(
+                  label,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    fontSize: 9,
+                    color: selected ? colors.primary : colors.onSurfaceVariant,
+                  ),
+                ),
               ],
             ),
           ),
@@ -160,14 +171,19 @@ class HomeScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon,
-                  size: 22,
-                  color: selected ? colors.primary : colors.onSurfaceVariant),
+              Icon(
+                icon,
+                size: 22,
+                color: selected ? colors.primary : colors.onSurfaceVariant,
+              ),
               const SizedBox(height: 3),
-              Text(label,
-                  maxLines: 1,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: selected ? colors.primary : colors.onSurfaceVariant)),
+              Text(
+                label,
+                maxLines: 1,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: selected ? colors.primary : colors.onSurfaceVariant,
+                ),
+              ),
             ],
           ),
         ),
@@ -176,98 +192,154 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-class HomeLandingScreen extends StatelessWidget {
+class HomeLandingScreen extends ConsumerWidget {
   const HomeLandingScreen({super.key});
 
-  Future<void> _confirmLogout(BuildContext context) async {
+  Future<void> _confirmLogout(BuildContext context, WidgetRef ref) async {
+    final pending = ref.read(pendingSyncCountProvider).valueOrNull ?? 0;
     final shouldLogout = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Log out?'),
-        content: const Text(
-          'You can come back anytime and continue your speaking journey.',
+        content: Text(
+          pending > 0
+              ? '$pending session(s) have not synced yet. They stay saved on '
+                    'this device and will upload next time you sign in here.'
+              : 'You can come back anytime and continue your speaking journey.',
         ),
         actions: [
-          Row(children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Stay here', maxLines: 1,
-                    overflow: TextOverflow.ellipsis),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text(
+                    'Stay here',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: FilledButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text('Log out', maxLines: 1,
-                    overflow: TextOverflow.ellipsis),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text(
+                    'Log out',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               ),
-            ),
-          ]),
+            ],
+          ),
         ],
       ),
     );
-    if (shouldLogout == true && context.mounted) context.go(AppRoutes.login);
+    if (shouldLogout != true) return;
+    await ref.read(authServiceProvider).signOut();
+    if (context.mounted) context.go(AppRoutes.login);
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: pipAppBar(
-          context,
-          title: 'PipSpeak',
-          showBack: false,
-          centerTitle: false,
-          titleStyle: Theme.of(context).textTheme.headlineSmall?.copyWith(
-            color: Theme.of(context).colorScheme.primary,
-            fontWeight: FontWeight.w800,
-          ),
-          actions: [
-            IconButton(
-              tooltip: 'Log out',
-              onPressed: () => _confirmLogout(context),
-              icon: const Icon(Icons.logout_rounded),
-            ),
-          ],
+  Widget build(BuildContext context, WidgetRef ref) => Scaffold(
+    appBar: pipAppBar(
+      context,
+      title: 'PipSpeak',
+      showBack: false,
+      centerTitle: false,
+      titleStyle: Theme.of(context).textTheme.headlineSmall?.copyWith(
+        color: Theme.of(context).colorScheme.primary,
+        fontWeight: FontWeight.w800,
+      ),
+      actions: [
+        IconButton(
+          tooltip: 'Log out',
+          onPressed: () => _confirmLogout(context, ref),
+          icon: const Icon(Icons.logout_rounded),
         ),
-        body: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-            child: const _HomeTabView(),
-          ),
-        ),
-      );
+      ],
+    ),
+    body: SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+        child: const _HomeTabView(),
+      ),
+    ),
+  );
 }
+
 // -----------------------------------------------------------------------------
 // TAB 0: HOME
 // -----------------------------------------------------------------------------
-class _HomeTabView extends StatelessWidget {
+class _HomeTabView extends ConsumerWidget {
   const _HomeTabView();
 
+  static String _greeting(DateTime now) {
+    if (now.hour < 12) return 'Good morning';
+    if (now.hour < 18) return 'Good afternoon';
+    return 'Good evening';
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user =
+        ref.watch(currentUserProvider) ?? const UserProfile.placeholder();
+    final level = ref.watch(levelStatusProvider);
+    final records = ref.watch(genuineRecordsProvider);
+    final sync = ref.watch(syncLabelProvider);
+    final scheme = Theme.of(context).colorScheme;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final last = records.isEmpty ? null : records.first;
+    final invite = records.isEmpty
+        ? 'Record your first speech to set your baseline. Stars start '
+              'with your next improvement.'
+        : user.streakDays > 0
+        ? 'You are on a ${user.streakDays}-day streak. Keep it going '
+              'with one more practice today.'
+        : 'Ready for a small win today? Jump back into practice.';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'Good morning, speaker!',
+          '${_greeting(DateTime.now())}, ${user.nickname}!',
           style: Theme.of(context).textTheme.displaySmall,
         ),
         const SizedBox(height: 8),
         Text(
-          'Ready for a small win today? Take on today’s speech exercise.',
+          invite,
           style: TextStyle(
             fontSize: 15,
             color: AppColors.secondaryText(context),
           ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 8),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: ActionChip(
+            avatar: Icon(
+              sync.isError
+                  ? Icons.cloud_off_rounded
+                  : sync.text == 'Synced'
+                  ? Icons.cloud_done_rounded
+                  : Icons.cloud_upload_outlined,
+              size: 18,
+              color: sync.isError ? scheme.error : scheme.primary,
+            ),
+            label: Text(sync.text),
+            onPressed: sync.canRetry
+                ? () => ref.read(syncControllerProvider.notifier).syncNow()
+                : null,
+          ),
+        ),
+        const SizedBox(height: 16),
 
-        // Warm up card
+        // Practice invitation card
         Container(
           padding: const EdgeInsets.all(22),
           decoration: BoxDecoration(
-            color: AppColors.navy,
+            color: dark ? scheme.primaryContainer : AppColors.navy,
             borderRadius: BorderRadius.circular(24),
             boxShadow: const [
               BoxShadow(
@@ -289,9 +361,9 @@ class _HomeTabView extends StatelessWidget {
                   color: AppColors.yellow,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Text(
-                  "TODAY'S WARM-UP",
-                  style: TextStyle(
+                child: Text(
+                  records.isEmpty ? 'FIRST SPEECH' : "TODAY'S PRACTICE",
+                  style: const TextStyle(
                     color: AppColors.navy,
                     fontWeight: FontWeight.w800,
                     fontSize: 11,
@@ -299,43 +371,58 @@ class _HomeTabView extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 14),
-              const Text(
-                'Tell a story in 60 seconds',
+              Text(
+                'Practice for: ${user.goal}',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: dark ? scheme.onPrimaryContainer : Colors.white,
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Practice structuring a beginning, middle, and climax with natural pacing.',
+              Text(
+                last == null
+                    ? 'Speak for a minute or two. Pip measures pace, filler '
+                          'words and posture on this device.'
+                    : 'Last session: ${(last.overallScore ?? 0).round()}/100 '
+                          'score, ${(last.wordsPerMinute ?? 0).round()} wpm, '
+                          '${last.fillerCount ?? 0} fillers. Beat it today!',
                 style: TextStyle(
-                  color: Colors.white70,
+                  color: (dark ? scheme.onPrimaryContainer : Colors.white)
+                      .withValues(alpha: 0.8),
                   fontSize: 13,
                   height: 1.4,
                 ),
+              ),
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.yellow,
+                  foregroundColor: AppColors.navy,
+                ),
+                onPressed: () => context.go(AppRoutes.practiceSetup),
+                icon: const Icon(Icons.mic_rounded),
+                label: const Text('Start practicing'),
               ),
             ],
           ),
         ),
         const SizedBox(height: 20),
 
-        // Stat cards
-        const Row(
+        Row(
           children: [
             Expanded(
               child: _StatCard(
-                title: '0',
+                title: '${user.streakDays}',
                 label: 'Day streak',
                 icon: Icons.local_fire_department_rounded,
                 color: AppColors.sky,
               ),
             ),
-            SizedBox(width: 14),
+            const SizedBox(width: 14),
             Expanded(
               child: _StatCard(
-                title: '0',
+                title: '${user.totalSessions}',
                 label: 'Sessions completed',
                 icon: Icons.check_circle_outline_rounded,
                 color: AppColors.mint,
@@ -343,12 +430,34 @@ class _HomeTabView extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.military_tech_rounded),
+            title: Text('Level ${level.level} · ${level.totalStars} stars'),
+            subtitle: Text(
+              '${level.starsRemaining} more star(s) to Level ${level.level + 1}',
+            ),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => context.go(AppRoutes.progress),
+          ),
+        ),
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.description_outlined),
+            title: const Text('Analyze a speech script'),
+            subtitle: const Text('PDF, DOCX or TXT, processed on this device.'),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => context.push(AppRoutes.documentUpload),
+          ),
+        ),
         Card(
           child: ListTile(
             leading: const Icon(Icons.offline_bolt_rounded),
             title: const Text('Ask your local AI coach'),
-            subtitle: const Text('Chat with Qwen on this device, even offline.'),
+            subtitle: const Text(
+              'Chat with Qwen on this device, even offline.',
+            ),
             trailing: const Icon(Icons.chevron_right_rounded),
             onTap: () => context.go(AppRoutes.aiCoach),
           ),
@@ -373,17 +482,21 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: color,
+        color: dark ? scheme.surfaceContainerHigh : color,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(
+          color: dark ? scheme.outlineVariant : AppColors.line,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: AppColors.navy, size: 24),
+          Icon(icon, color: dark ? scheme.primary : AppColors.navy, size: 24),
           const SizedBox(height: 10),
           Text(
             title,

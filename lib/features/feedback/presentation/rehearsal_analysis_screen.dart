@@ -36,7 +36,8 @@ class _RehearsalAnalysisScreenState
     final text = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
     final history = ref.watch(sessionHistoryProvider);
-    final session = widget.session ??
+    final session =
+        widget.session ??
         (history.isNotEmpty
             ? history.first
             : PracticeSession(
@@ -51,7 +52,9 @@ class _RehearsalAnalysisScreenState
                 starsEarned: 0,
                 improved: false,
               ));
-    final report = ref.watch(lastReportProvider);
+    final report = widget.session == null
+        ? ref.watch(lastReportProvider)
+        : ref.watch(sessionReportProvider(session.id)).valueOrNull;
     final pose = ref.watch(lastPoseMetricsProvider);
 
     final score = session.paceScore;
@@ -70,49 +73,62 @@ class _RehearsalAnalysisScreenState
               children: [
                 // Header card
                 PipCard(
-                  child: Column(children: [
-                    Row(children: [
-                      Expanded(
-                        child: Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment.start,
-                            children: [
-                              Text(session.title,
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  session.title,
                                   style: text.headlineSmall?.copyWith(
-                                      color: scheme.primary)),
-                              const SizedBox(height: 4),
-                              Text(
-                                '${DateFormat.yMMMd().format(session.date)} • '
-                                '$mins:${secs.toString().padLeft(2, '0')} min',
-                                style: text.bodySmall?.copyWith(
-                                    color: scheme.onSurfaceVariant),
-                              ),
-                            ]),
+                                    color: scheme.primary,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${DateFormat.yMMMd().format(session.date)} • '
+                                  '$mins:${secs.toString().padLeft(2, '0')} min',
+                                  style: text.bodySmall?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          _scoreRing(score),
+                        ],
                       ),
-                      _scoreRing(score),
-                    ]),
-                    const SizedBox(height: 12),
-                    Row(children: [
-                      if (session.improved)
-                        const MintBadge(
-                            label: 'Improved',
-                            icon: Icons.trending_up)
-                      else
-                        PipBadge(
-                            label: 'Off day',
-                            icon: Icons.trending_flat,
-                            background: scheme.surfaceContainerHigh,
-                            foreground: scheme.onSurfaceVariant),
-                      const SizedBox(width: 8),
-                      if (session.goal != null)
-                        SkyBadge(
-                            label: session.goal!,
-                            icon: Icons.flag_outlined),
-                      const Spacer(),
-                      if (session.starsEarned > 0)
-                        StarChip(label: '+${session.starsEarned}'),
-                    ]),
-                  ]),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          if (session.improved)
+                            const MintBadge(
+                              label: 'Improved',
+                              icon: Icons.trending_up,
+                            )
+                          else
+                            PipBadge(
+                              label: 'Off day',
+                              icon: Icons.trending_flat,
+                              background: scheme.surfaceContainerHigh,
+                              foreground: scheme.onSurfaceVariant,
+                            ),
+                          const SizedBox(width: 8),
+                          if (session.goal != null)
+                            SkyBadge(
+                              label: session.goal!,
+                              icon: Icons.flag_outlined,
+                            ),
+                          const Spacer(),
+                          if (session.starsEarned > 0)
+                            StarChip(label: '+${session.starsEarned}'),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 16),
 
@@ -121,30 +137,37 @@ class _RehearsalAnalysisScreenState
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
                     color: scheme.surfaceContainerLow,
-                    borderRadius:
-                        BorderRadius.circular(AppTheme.pillRadius),
+                    borderRadius: BorderRadius.circular(AppTheme.pillRadius),
                   ),
-                  child: Row(children: [
-                    _segTab('Delivery', 0, scheme),
-                    _segTab('Topic fit', 1, scheme),
-                  ]),
+                  child: Row(
+                    children: [
+                      _segTab('Delivery', 0, scheme),
+                      _segTab('Topic fit', 1, scheme),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 16),
 
                 if (_tab == 0) ...[
-                  _metricBar('Pace', session.avgWpm / 180,
-                      '${session.avgWpm} wpm',
-                      AppColors.secondaryFixed,
-                      session.avgWpm > 155 ? 'Slightly fast' : 'In the zone'),
+                  _metricBar(
+                    'Pace',
+                    session.avgWpm / 180,
+                    '${session.avgWpm} wpm',
+                    AppColors.secondaryFixed,
+                    session.avgWpm > 155 ? 'Slightly fast' : 'In the zone',
+                  ),
                   const SizedBox(height: 10),
-                  _metricBar('Fillers', session.fillerCount / 15,
-                      '${session.fillerCount} words',
-                      session.fillerCount > 8
-                          ? AppColors.errorContainer
-                          : AppColors.tertiaryFixed,
-                      session.fillerCount > 8
-                          ? 'Trim "um" & "like"'
-                          : 'Clean delivery'),
+                  _metricBar(
+                    'Fillers',
+                    session.fillerCount / 15,
+                    '${session.fillerCount} words',
+                    session.fillerCount > 8
+                        ? AppColors.errorContainer
+                        : AppColors.tertiaryFixed,
+                    session.fillerCount > 8
+                        ? 'Trim "um" & "like"'
+                        : 'Clean delivery',
+                  ),
                   const SizedBox(height: 10),
                   _metricBar(
                     'Posture',
@@ -156,8 +179,8 @@ class _RehearsalAnalysisScreenState
                     pose == null || !pose.isPersonInFrame
                         ? 'No camera measurement'
                         : pose.qualityLimitations.isEmpty
-                            ? 'Measured from camera frames'
-                            : pose.qualityLimitations.first,
+                        ? 'Measured from camera frames'
+                        : pose.qualityLimitations.first,
                   ),
                   const SizedBox(height: 10),
                   _metricBar(
@@ -189,44 +212,46 @@ class _RehearsalAnalysisScreenState
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: AppColors.secondaryFixed.withValues(alpha: 0.25),
-                    borderRadius:
-                        BorderRadius.circular(AppTheme.cardRadius),
+                    borderRadius: BorderRadius.circular(AppTheme.cardRadius),
                     border: Border.all(color: AppColors.secondaryFixed),
                   ),
                   child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(Icons.flag_circle,
-                            color: AppColors.secondary, size: 22),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            report?.llmResponse?.isNotEmpty == true
-                                ? report!.llmResponse!
-                                : report?.summary ??
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(
+                        Icons.flag_circle,
+                        color: AppColors.secondary,
+                        size: 22,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          report?.llmResponse?.isNotEmpty == true
+                              ? report!.llmResponse!
+                              : report?.summary ??
                                     'Wala pang local AI feedback para sa session na ito.',
-                            style: text.bodyMedium?.copyWith(
-                                color:
-                                    AppColors.onSecondaryFixedVariant),
+                          style: text.bodyMedium?.copyWith(
+                            color: AppColors.onSecondaryFixedVariant,
                           ),
                         ),
-                      ]),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 20),
                 PrimaryButton(
-                    label: 'Re-practice this speech',
-                    icon: Icons.replay,
-                    onPressed: () =>
-                        context.push(AppRoutes.practiceSetup)),
+                  label: 'Re-practice this speech',
+                  icon: Icons.replay,
+                  onPressed: () => context.push(AppRoutes.practiceSetup),
+                ),
                 const SizedBox(height: 8),
                 PipSecondaryButton(
-                    label: 'Export feedback',
-                    icon: Icons.ios_share,
-                    onPressed: () =>
-                        ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content:
-                                    Text('Export coming soon (mock)')))),
+                  label: 'Export feedback',
+                  icon: Icons.ios_share,
+                  onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Export coming soon (mock)')),
+                  ),
+                ),
               ],
             ),
           ),
@@ -252,21 +277,22 @@ class _RehearsalAnalysisScreenState
             decoration: BoxDecoration(
               color: sel ? scheme.surfaceContainerLowest : null,
               borderRadius: BorderRadius.circular(AppTheme.pillRadius),
-              boxShadow:
-                  sel
-                      ? const [
-                          BoxShadow(
-                              color: Color.fromRGBO(27, 42, 107, 0.1),
-                              blurRadius: 8)
-                        ]
-                      : null,
+              boxShadow: sel
+                  ? const [
+                      BoxShadow(
+                        color: Color.fromRGBO(27, 42, 107, 0.1),
+                        blurRadius: 8,
+                      ),
+                    ]
+                  : null,
             ),
             child: Center(
-              child: Text(label,
-                  style: text.labelLarge?.copyWith(
-                      color: sel
-                          ? scheme.primary
-                          : scheme.onSurfaceVariant)),
+              child: Text(
+                label,
+                style: text.labelLarge?.copyWith(
+                  color: sel ? scheme.primary : scheme.onSurfaceVariant,
+                ),
+              ),
             ),
           ),
         ),
@@ -280,60 +306,89 @@ class _RehearsalAnalysisScreenState
     return SizedBox(
       width: 84,
       height: 84,
-      child: Stack(alignment: Alignment.center, children: [
-        CircularProgressIndicator(
-          value: score / 100,
-          strokeWidth: 8,
-          backgroundColor: scheme.surfaceContainerHigh,
-          valueColor: AlwaysStoppedAnimation(
-              score > 75 ? AppColors.onTertiaryFixedVariant : AppColors.amber),
-        ),
-        Column(mainAxisSize: MainAxisSize.min, children: [
-          Text('$score',
-              style: text.headlineSmall
-                  ?.copyWith(color: scheme.primary)),
-          Text('SCORE',
-              style: text.labelSmall
-                  ?.copyWith(color: scheme.onSurfaceVariant)),
-        ]),
-      ]),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          CircularProgressIndicator(
+            value: score / 100,
+            strokeWidth: 8,
+            backgroundColor: scheme.surfaceContainerHigh,
+            valueColor: AlwaysStoppedAnimation(
+              score > 75 ? AppColors.onTertiaryFixedVariant : AppColors.amber,
+            ),
+          ),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '$score',
+                style: text.headlineSmall?.copyWith(color: scheme.primary),
+              ),
+              Text(
+                'SCORE',
+                style: text.labelSmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _metricBar(String label, double progress, String value,
-      Color tint, String verdict) {
+  Widget _metricBar(
+    String label,
+    double progress,
+    String value,
+    Color tint,
+    String verdict,
+  ) {
     final text = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
     return PipCard(
       padding: const EdgeInsets.all(16),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Text(label,
-              style: text.labelLarge?.copyWith(color: scheme.onSurface)),
-          Text(value,
-              style:
-                  text.labelMedium?.copyWith(color: scheme.primary)),
-        ]),
-        const SizedBox(height: 8),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(999),
-          child: SizedBox(
-            height: 12,
-            child: Stack(fit: StackFit.expand, children: [
-              Container(color: scheme.surfaceContainerHigh),
-              FractionallySizedBox(
-                alignment: Alignment.centerLeft,
-                widthFactor: progress.clamp(0.0, 1.0),
-                child: Container(color: tint),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                label,
+                style: text.labelLarge?.copyWith(color: scheme.onSurface),
               ),
-            ]),
+              Text(
+                value,
+                style: text.labelMedium?.copyWith(color: scheme.primary),
+              ),
+            ],
           ),
-        ),
-        const SizedBox(height: 6),
-        Text(verdict,
-            style: text.bodySmall
-                ?.copyWith(color: scheme.onSurfaceVariant)),
-      ]),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: SizedBox(
+              height: 12,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Container(color: scheme.surfaceContainerHigh),
+                  FractionallySizedBox(
+                    alignment: Alignment.centerLeft,
+                    widthFactor: progress.clamp(0.0, 1.0),
+                    child: Container(color: tint),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            verdict,
+            style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+          ),
+        ],
+      ),
     );
   }
 
@@ -344,38 +399,48 @@ class _RehearsalAnalysisScreenState
       padding: const EdgeInsets.only(bottom: 10),
       child: PipCard(
         padding: const EdgeInsets.all(16),
-        child: Row(children: [
-          Expanded(
-            child: Column(
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(name,
-                      style: text.labelLarge
-                          ?.copyWith(color: scheme.onSurface)),
+                  Text(
+                    name,
+                    style: text.labelLarge?.copyWith(color: scheme.onSurface),
+                  ),
                   const SizedBox(height: 2),
-                  Text(note,
-                      style: text.bodySmall?.copyWith(
-                          color: scheme.onSurfaceVariant)),
-                ]),
-          ),
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: score > 75
-                  ? AppColors.tertiaryFixed.withValues(alpha: 0.6)
-                  : AppColors.errorContainer,
+                  Text(
+                    note,
+                    style: text.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
             ),
-            child: Center(
-              child: Text('$score',
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: score > 75
+                    ? AppColors.tertiaryFixed.withValues(alpha: 0.6)
+                    : AppColors.errorContainer,
+              ),
+              child: Center(
+                child: Text(
+                  '$score',
                   style: text.labelLarge?.copyWith(
-                      color: score > 75
-                          ? AppColors.onTertiaryFixed
-                          : AppColors.error)),
+                    color: score > 75
+                        ? AppColors.onTertiaryFixed
+                        : AppColors.error,
+                  ),
+                ),
+              ),
             ),
-          ),
-        ]),
+          ],
+        ),
       ),
     );
   }

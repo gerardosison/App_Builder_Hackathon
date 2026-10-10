@@ -1,10 +1,16 @@
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+import '../../../core/models/user_profile.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/app_providers.dart';
 import '../../../app/theme/app_colors.dart';
-import '../../../features/auth/services/local_auth_service.dart';
 import '../../../core/widgets/pip_buttons.dart';
 import '../../../core/widgets/pip_cards.dart';
 import '../../../core/widgets/pip_fields.dart';
@@ -16,8 +22,7 @@ class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
 
   @override
-  ConsumerState<EditProfileScreen> createState() =>
-      _EditProfileScreenState();
+  ConsumerState<EditProfileScreen> createState() => _EditProfileScreenState();
 }
 
 class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
@@ -28,10 +33,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   @override
   void initState() {
     super.initState();
-    final u = ref.read(currentUserProvider) ?? LocalAuthService.mockUser;
+    final u = ref.read(currentUserProvider) ?? const UserProfile.placeholder();
     _name = TextEditingController(text: u.name);
     _nickname = TextEditingController(text: u.nickname);
-    _email = TextEditingController(text: u.email);
+    _email = TextEditingController(text: u.school);
   }
 
   @override
@@ -42,12 +47,59 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     super.dispose();
   }
 
+  Future<void> _save(UserProfile user) async {
+    if (user.uid.isEmpty) return;
+    try {
+      await ref
+          .read(profileRepositoryProvider)
+          .save(
+            userId: user.uid,
+            fullName: _name.text,
+            nickname: _nickname.text,
+            language: user.language,
+            practicePurpose: user.goal,
+            onboardingComplete: true,
+            school: _email.text,
+          );
+      ref.read(syncControllerProvider.notifier).syncNow();
+      if (mounted) context.pop();
+    } on ArgumentError catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('${error.message}')));
+      }
+    }
+  }
+
+  Future<void> _pickPhoto(UserProfile user) async {
+    final picked = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 512,
+      imageQuality: 85,
+    );
+    if (picked == null || user.uid.isEmpty) return;
+    final dir = await getApplicationDocumentsDirectory();
+    final target = File(p.join(dir.path, 'profile_${user.uid}.jpg'));
+    await File(picked.path).copy(target.path);
+    await ref
+        .read(profileRepositoryProvider)
+        .setPhotoPath(user.uid, target.path);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Photo saved on this device (not uploaded).'),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
     final user =
-        ref.watch(currentUserProvider) ?? LocalAuthService.mockUser;
+        ref.watch(currentUserProvider) ?? const UserProfile.placeholder();
 
     return Scaffold(
       appBar: pipAppBar(context, title: 'Edit Profile'),
@@ -61,94 +113,118 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               children: [
                 // Avatar
                 Center(
-                  child: Stack(children: [
-                    Container(
-                      width: 104,
-                      height: 104,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppColors.secondaryFixed
-                            .withValues(alpha: 0.5),
-                        border: Border.all(
-                            color: scheme.secondaryContainer, width: 3),
-                      ),
-                      child: Center(
-                        child: Text(
-                          _name.text.isEmpty
-                              ? '?'
-                              : _name.text[0].toUpperCase(),
-                          style: text.displayLarge?.copyWith(
-                              fontSize: 40, color: scheme.primary),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      right: 0,
-                      bottom: 0,
-                      child: Container(
-                        width: 36,
-                        height: 36,
+                  child: Stack(
+                    children: [
+                      Container(
+                        width: 104,
+                        height: 104,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: scheme.primary,
+                          color: AppColors.secondaryFixed.withValues(
+                            alpha: 0.5,
+                          ),
                           border: Border.all(
-                              color: scheme.surfaceContainerLowest,
-                              width: 2),
+                            color: scheme.secondaryContainer,
+                            width: 3,
+                          ),
                         ),
-                        child: const Icon(Icons.photo_camera,
-                            size: 16, color: Colors.white),
+                        child: Center(
+                          child: Text(
+                            _name.text.isEmpty
+                                ? '?'
+                                : _name.text[0].toUpperCase(),
+                            style: text.displayLarge?.copyWith(
+                              fontSize: 40,
+                              color: scheme.primary,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                  ]),
+                      Positioned(
+                        right: 0,
+                        bottom: 0,
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: scheme.primary,
+                            border: Border.all(
+                              color: scheme.surfaceContainerLowest,
+                              width: 2,
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.photo_camera,
+                            size: 16,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 6),
                 Center(
-                  child: Text('Tap to change avatar',
-                      style: text.labelSmall
-                          ?.copyWith(color: scheme.onSurfaceVariant)),
+                  child: Text(
+                    'Tap to change avatar',
+                    style: text.labelSmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 20),
 
                 PipCard(
-                  child: Column(children: [
-                    PipTextField(
+                  child: Column(
+                    children: [
+                      PipTextField(
                         label: 'Full Name',
-                        hint: 'Maya Chen',
+                        hint: 'Your full name',
                         icon: Icons.badge_outlined,
-                        controller: _name),
-                    const SizedBox(height: 14),
-                    PipTextField(
+                        controller: _name,
+                      ),
+                      const SizedBox(height: 14),
+                      PipTextField(
                         label: 'Nickname',
-                        hint: 'OratorMaya',
+                        hint: 'What Pip should call you',
                         icon: Icons.alternate_email,
-                        controller: _nickname),
-                    const SizedBox(height: 14),
-                    PipTextField(
-                        label: 'Email',
-                        hint: 'maya@school.edu',
-                        icon: Icons.mail_outline,
+                        controller: _nickname,
+                      ),
+                      const SizedBox(height: 14),
+                      PipTextField(
+                        label: 'School (optional)',
+                        hint: 'e.g. Riverside High',
+                        icon: Icons.school_outlined,
                         controller: _email,
-                        keyboardType: TextInputType.emailAddress),
-                  ]),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Signed in as ${user.email}. Your email and username '
+                        'are tied to your account and cannot be edited here.',
+                        style: text.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 16),
 
+                if (!kIsWeb) ...[
+                  PipGhostButton(
+                    label: 'Change profile photo',
+                    onPressed: () => _pickPhoto(user),
+                  ),
+                  const SizedBox(height: 8),
+                ],
                 PrimaryButton(
                   label: 'Save Changes',
                   icon: Icons.check,
-                  onPressed: () {
-                    ref.read(currentUserProvider.notifier).state =
-                        user.copyWith(
-                            name: _name.text.trim(),
-                            nickname: _nickname.text.trim(),
-                            email: _email.text.trim());
-                    context.pop();
-                  },
+                  onPressed: () => _save(user),
                 ),
                 const SizedBox(height: 8),
-                PipGhostButton(
-                    label: 'Cancel',
-                    onPressed: () => context.pop()),
+                PipGhostButton(label: 'Cancel', onPressed: () => context.pop()),
               ],
             ),
           ),

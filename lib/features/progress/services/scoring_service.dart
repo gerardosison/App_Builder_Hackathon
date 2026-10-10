@@ -1,16 +1,57 @@
-import '../../../core/models/practice_session.dart';
+/// Result of comparing a new session against earlier compatible sessions.
+class StarAward {
+  const StarAward({required this.stars, required this.baselineSessionId});
 
-/// Business rule (mock): stars are earned only when a speech improves
-/// over the previous one; the first speech earns none.
+  final int stars;
+
+  /// The first compatible session; null when this session is the baseline.
+  final String? baselineSessionId;
+
+  bool get isBaseline => baselineSessionId == null;
+}
+
+/// Earlier session used for comparison (newest first).
+class ScoredSession {
+  const ScoredSession({required this.id, required this.score});
+
+  final String id;
+  final double score;
+}
+
+/// Deterministic star rule (scoring version [version]).
+///
+/// Sessions are compatible when they share practice purpose, language and
+/// scoring version, and are genuine (not test) sessions with a score. The
+/// first compatible session is the baseline and earns 0 stars. Later
+/// sessions compare their overall score with the mean of up to the
+/// [window] most recent compatible scores:
+///   +2 points → 1 star, +5 → 2 stars, +10 → 3 stars, otherwise 0.
 class ScoringService {
   const ScoringService();
 
-  /// Stars to award for [session] vs. its predecessor.
-  int starsFor(PracticeSession session, PracticeSession? previous) {
-    if (previous == null || !session.improved) return 0;
-    // Simple heuristic: 1–3 stars by pace score.
-    if (session.paceScore >= 85) return 3;
-    if (session.paceScore >= 70) return 2;
-    return 1;
+  static const version = 'v1';
+  static const window = 3;
+
+  StarAward award({
+    required double score,
+    required List<ScoredSession> previousCompatible,
+  }) {
+    if (previousCompatible.isEmpty) {
+      return const StarAward(stars: 0, baselineSessionId: null);
+    }
+    final recent = previousCompatible.take(window).toList();
+    final reference =
+        recent.map((s) => s.score).reduce((a, b) => a + b) / recent.length;
+    return StarAward(
+      stars: starsForImprovement(score - reference),
+      baselineSessionId: previousCompatible.last.id,
+    );
+  }
+
+  static int starsForImprovement(double delta) {
+    if (delta >= 10) return 3;
+    if (delta >= 5) return 2;
+    if (delta >= 2) return 1;
+    return 0;
   }
 }

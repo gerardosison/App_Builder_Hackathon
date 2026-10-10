@@ -1,0 +1,112 @@
+rules_version = '2';
+
+// PipSpeak security rules. Each account can only read and write its own
+// documents. Raw recordings, transcripts and documents stay on the device.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function optionalNumber(data, key, minValue, maxValue) {
+      return !(key in data) ||
+        ((data[key] is int || data[key] is float) &&
+          data[key] >= minValue && data[key] <= maxValue);
+    }
+
+    function optionalInt(data, key, maxValue) {
+      return !(key in data) ||
+        (data[key] is int && data[key] >= 0 && data[key] <= maxValue);
+    }
+
+    function validProfile(data) {
+      return data.keys().hasOnly([
+          'fullName', 'nickname', 'username', 'language', 'practicePurpose',
+          'school', 'onboardingComplete', 'revision', 'updatedAt'])
+        && data.keys().hasAll(['fullName', 'nickname', 'language',
+          'practicePurpose', 'onboardingComplete', 'revision', 'updatedAt'])
+        && data.fullName is string && data.fullName.size() > 0
+        && data.fullName.size() <= 80
+        && data.nickname is string && data.nickname.size() <= 40
+        && (!('username' in data) ||
+            (data.username is string && data.username.size() <= 20))
+        && data.language is string && data.language.size() <= 40
+        && data.practicePurpose is string && data.practicePurpose.size() <= 120
+        && (!('school' in data) ||
+            (data.school is string && data.school.size() <= 80))
+        && data.onboardingComplete is bool
+        && data.revision is string && data.revision.size() <= 64
+        && data.updatedAt == request.time;
+    }
+
+    function validSession(uid, sessionId, data) {
+      return data.keys().hasOnly([
+          'userId', 'completedAt', 'practicePurpose', 'language',
+          'durationSeconds', 'starsEarned', 'baselineSessionId',
+          'scoringVersion', 'isTest', 'overallScore', 'wordsPerMinute',
+          'fillerCount', 'pauseCount', 'postureScore', 'bodySwayCm',
+          'gestureScore'])
+        && data.keys().hasAll(['userId', 'completedAt', 'practicePurpose',
+          'durationSeconds', 'starsEarned', 'scoringVersion', 'isTest'])
+        && data.userId == uid
+        && sessionId.size() <= 64
+        && data.completedAt is timestamp
+        && data.completedAt <= request.time + duration.value(1, 'd')
+        && data.practicePurpose is string
+        && data.practicePurpose.size() > 0 && data.practicePurpose.size() <= 120
+        && (!('language' in data) ||
+            (data.language is string && data.language.size() <= 40))
+        && data.durationSeconds is int
+        && data.durationSeconds >= 0 && data.durationSeconds <= 21600
+        && data.starsEarned is int
+        && data.starsEarned >= 0 && data.starsEarned <= 3
+        && (!('baselineSessionId' in data) ||
+            (data.baselineSessionId is string &&
+              data.baselineSessionId.size() <= 64))
+        && data.scoringVersion is string && data.scoringVersion.size() <= 16
+        && data.isTest is bool
+        && optionalNumber(data, 'overallScore', 0, 100)
+        && optionalNumber(data, 'wordsPerMinute', 0, 1000)
+        && optionalInt(data, 'fillerCount', 100000)
+        && optionalInt(data, 'pauseCount', 100000)
+        && optionalNumber(data, 'postureScore', 0, 100)
+        && optionalNumber(data, 'bodySwayCm', 0, 1000)
+        && optionalNumber(data, 'gestureScore', 0, 100);
+    }
+
+    match /users/{uid} {
+      allow get: if isOwner(uid);
+      allow create, update: if isOwner(uid) && validProfile(request.resource.data);
+      allow delete: if isOwner(uid);
+
+      match /sessions/{sessionId} {
+        allow get, list: if isOwner(uid);
+        allow create: if isOwner(uid)
+          && validSession(uid, sessionId, request.resource.data);
+        // Completed sessions are immutable; an identical retry is allowed.
+        allow update: if isOwner(uid)
+          && request.resource.data == resource.data;
+        allow delete: if isOwner(uid);
+      }
+    }
+
+    // Public username → account lookup so usernames can be used to sign in.
+    // Reveals the email linked to a username (documented trade-off).
+    match /usernames/{username} {
+      allow get: if true;
+      allow list: if false;
+      allow create: if signedIn()
+        && username.matches('^[a-z0-9_.]{3,20}$')
+        && request.resource.data.keys().hasOnly(['uid', 'email'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.email == request.auth.token.email;
+      allow update: if false;
+      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+    }
+  }
+}

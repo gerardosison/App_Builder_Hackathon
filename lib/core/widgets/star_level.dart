@@ -5,7 +5,7 @@ import '../../app/theme/app_theme.dart';
 import '../../features/progress/services/level_service.dart';
 import 'pip_chips.dart';
 
-/// Business rule (mock): level n requires 10*n stars to level up.
+/// Level n requires 10*n more stars to reach level n+1 (cumulative).
 /// Stars are only earned when a speech improves on the previous one.
 class LevelProgress extends StatelessWidget {
   const LevelProgress({
@@ -42,8 +42,9 @@ class LevelProgress extends StatelessWidget {
               widthFactor: progress,
               child: Container(
                 decoration: const BoxDecoration(
-                  gradient:
-                      LinearGradient(colors: [AppColors.amber, AppColors.gold]),
+                  gradient: LinearGradient(
+                    colors: [AppColors.amber, AppColors.gold],
+                  ),
                 ),
               ),
             ),
@@ -70,16 +71,24 @@ class LevelProgress extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(children: [
-              const Icon(Icons.military_tech,
-                  color: AppColors.amber, size: 20),
-              const SizedBox(width: 6),
-              Text('Level $level Speaker',
-                  style: text.labelLarge?.copyWith(color: scheme.primary)),
-            ]),
-            Text('$stars / $needed stars',
-                style: text.labelMedium
-                    ?.copyWith(color: scheme.onSurfaceVariant)),
+            Row(
+              children: [
+                const Icon(
+                  Icons.military_tech,
+                  color: AppColors.amber,
+                  size: 20,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'Level $level Speaker',
+                  style: text.labelLarge?.copyWith(color: scheme.primary),
+                ),
+              ],
+            ),
+            Text(
+              '$stars / $needed stars',
+              style: text.labelMedium?.copyWith(color: scheme.onSurfaceVariant),
+            ),
           ],
         ),
         const SizedBox(height: 8),
@@ -89,8 +98,7 @@ class LevelProgress extends StatelessWidget {
           stars == 0
               ? 'Complete one more speech to start earning stars'
               : '${needed - stars} more to Level ${level + 1}',
-          style:
-              text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+          style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
         ),
       ],
     );
@@ -99,7 +107,12 @@ class LevelProgress extends StatelessWidget {
 
 /// Row of N star icons (filled gold / outlined).
 class StarRow extends StatelessWidget {
-  const StarRow({super.key, required this.count, this.total = 3, this.size = 40});
+  const StarRow({
+    super.key,
+    required this.count,
+    this.total = 3,
+    this.size = 40,
+  });
 
   final int count;
   final int total;

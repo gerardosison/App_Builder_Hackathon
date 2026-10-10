@@ -11,7 +11,29 @@ class UserProfile {
     required this.school,
     this.language = 'English (US)',
     this.goal = 'Class Presentation',
+    this.uid = '',
+    this.username = '',
+    this.photoPath,
   });
+
+  /// Shown briefly while the signed-in profile loads from SQLite.
+  const UserProfile.placeholder()
+    : this(
+        name: 'Speaker',
+        nickname: 'Speaker',
+        email: '',
+        level: 1,
+        stars: 0,
+        streakDays: 0,
+        totalSessions: 0,
+        school: '',
+      );
+
+  final String uid;
+  final String username;
+
+  /// Device-local profile photo path (not synchronized).
+  final String? photoPath;
 
   final String name;
   final String nickname;
@@ -39,17 +61,19 @@ class UserProfile {
     String? school,
     String? language,
     String? goal,
-  }) =>
-      UserProfile(
-        name: name ?? this.name,
-        nickname: nickname ?? this.nickname,
-        email: email ?? this.email,
-        level: level ?? this.level,
-        stars: stars ?? this.stars,
-        streakDays: streakDays ?? this.streakDays,
-        totalSessions: totalSessions ?? this.totalSessions,
-        school: school ?? this.school,
-        language: language ?? this.language,
-        goal: goal ?? this.goal,
-      );
+  }) => UserProfile(
+    name: name ?? this.name,
+    nickname: nickname ?? this.nickname,
+    email: email ?? this.email,
+    level: level ?? this.level,
+    stars: stars ?? this.stars,
+    streakDays: streakDays ?? this.streakDays,
+    totalSessions: totalSessions ?? this.totalSessions,
+    school: school ?? this.school,
+    language: language ?? this.language,
+    goal: goal ?? this.goal,
+    uid: uid,
+    username: username,
+    photoPath: photoPath,
+  );
 }

@@ -1,24 +1,31 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../../app/app_providers.dart';
+import '../../../app/app_router.dart';
+import '../services/auth_service.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../onboarding/presentation/welcome_screen.dart';
 import 'register_screen.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen>
+class _LoginScreenState extends ConsumerState<LoginScreen>
     with TickerProviderStateMixin {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _formOpen = false;
+  bool _busy = false;
 
   /// Plays once when the screen first appears (logo pops in, text fades in).
   late final AnimationController _entrance;
@@ -107,15 +114,65 @@ class _LoginScreenState extends State<LoginScreen>
     _form.reverse();
   }
 
-  void _onLogin() {
-    final username = _usernameController.text.trim();
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) =>
-            WelcomeScreen(nickname: username.isNotEmpty ? username : 'Speaker'),
-      ),
+  Future<void> _onLogin() async {
+    if (_busy) return;
+    FocusScope.of(context).unfocus();
+    setState(() => _busy = true);
+    try {
+      final user = await ref
+          .read(authServiceProvider)
+          .signIn(_usernameController.text, _passwordController.text);
+      final profile = await ref.read(profileRepositoryProvider).get(user.uid);
+      if (!mounted) return;
+      if (profile?.onboardingComplete ?? false) {
+        context.go(AppRoutes.home);
+      } else {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) =>
+                WelcomeScreen(nickname: profile?.nickname ?? 'Speaker'),
+          ),
+        );
+      }
+    } on AuthFailure catch (error) {
+      _showError(error.message);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: AppColors.coral),
     );
+  }
+
+  Future<void> _sendReset(String identifier) async {
+    var email = identifier.trim();
+    try {
+      if (email.isNotEmpty && !email.contains('@')) {
+        email =
+            await ref.read(profileRepositoryProvider).emailForUsername(email) ??
+            '';
+      }
+      await ref.read(authServiceProvider).sendPasswordReset(email);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'If an account exists, a password reset link was sent to its '
+            'email.',
+          ),
+          backgroundColor: AppColors.navy,
+        ),
+      );
+    } on AuthFailure catch (error) {
+      _showError(error.message);
+    } on Object {
+      _showError('Could not send the reset link. Check your connection.');
+    }
   }
 
   void _onRegister() {
@@ -162,33 +219,34 @@ class _LoginScreenState extends State<LoginScreen>
               ),
             ),
             const SizedBox(height: 20),
-            Row(children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(dialogContext),
-                  child: const Text('Cancel',
-                      maxLines: 1, overflow: TextOverflow.ellipsis),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(dialogContext),
+                    child: const Text(
+                      'Cancel',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(dialogContext);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Password recovery instructions sent to your email.',
-                        ),
-                        backgroundColor: AppColors.navy,
-                      ),
-                    );
-                  },
-                  child: const Text('Send Link',
-                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(dialogContext);
+                      _sendReset(emailController.text);
+                    },
+                    child: const Text(
+                      'Send Link',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
                 ),
-              ),
-            ]),
+              ],
+            ),
           ],
         ),
       ),
@@ -243,10 +301,14 @@ class _LoginScreenState extends State<LoginScreen>
                               builder: (context, child) {
                                 const heroHeight = 190.0;
                                 const formHeight = 500.0;
-                                final bottomSafe =
-                                    MediaQuery.of(context).padding.bottom;
-                                final topStart = (height * 0.38 - heroHeight / 2)
-                                    .clamp(8.0, double.infinity);
+                                final bottomSafe = MediaQuery.of(
+                                  context,
+                                ).padding.bottom;
+                                final topStart =
+                                    (height * 0.38 - heroHeight / 2).clamp(
+                                      8.0,
+                                      double.infinity,
+                                    );
                                 final maxTop = math.max(
                                   8.0,
                                   height -
@@ -257,7 +319,8 @@ class _LoginScreenState extends State<LoginScreen>
                                 );
                                 final topEnd = (height * 0.26 - heroHeight / 2)
                                     .clamp(8.0, maxTop);
-                                final top = topStart +
+                                final top =
+                                    topStart +
                                     (topEnd - topStart) * _formCurve.value;
                                 return Positioned(
                                   top: top,
@@ -370,7 +433,6 @@ class _LoginScreenState extends State<LoginScreen>
             ),
           ),
         ),
-
       ],
     );
   }
@@ -455,17 +517,15 @@ class _LoginScreenState extends State<LoginScreen>
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-  
           const SizedBox(height: 4),
           _reveal(
             0.35,
             0.7,
             Text(
               'Welcome back',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleLarge
-                  ?.copyWith(fontWeight: FontWeight.w800),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
             ),
           ),
           const SizedBox(height: 18),
@@ -477,8 +537,8 @@ class _LoginScreenState extends State<LoginScreen>
               controller: _usernameController,
               textInputAction: TextInputAction.next,
               decoration: const InputDecoration(
-                labelText: 'Username',
-                hintText: 'Enter username',
+                labelText: 'Username or email',
+                hintText: 'Enter username or email',
                 prefixIcon: Icon(Icons.person_outline_rounded),
               ),
             ),
@@ -498,8 +558,7 @@ class _LoginScreenState extends State<LoginScreen>
                 hintText: 'Enter password',
                 prefixIcon: const Icon(Icons.lock_outline_rounded),
                 suffixIcon: IconButton(
-                  tooltip:
-                      _obscurePassword ? 'Show password' : 'Hide password',
+                  tooltip: _obscurePassword ? 'Show password' : 'Hide password',
                   onPressed: () =>
                       setState(() => _obscurePassword = !_obscurePassword),
                   icon: Icon(
@@ -531,13 +590,13 @@ class _LoginScreenState extends State<LoginScreen>
             SizedBox(
               height: 52,
               child: ElevatedButton(
-                onPressed: _onLogin,
+                onPressed: _busy ? null : _onLogin,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.navy,
                   foregroundColor: Colors.white,
                 ),
-                child: const Text(
-                  'Login',
+                child: Text(
+                  _busy ? 'Signing in…' : 'Login',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                 ),
               ),
@@ -667,8 +726,13 @@ class _MountainPainter extends CustomPainter {
     ];
     for (final c in clouds) {
       final x = (((c[0] as double) + t * (c[3] as double)) % 1.3 - 0.2) * w;
-      _cloud(canvas, x, h * (c[1] as double) - p * 8, c[2] as double,
-          Color(c[4] as int));
+      _cloud(
+        canvas,
+        x,
+        h * (c[1] as double) - p * 8,
+        c[2] as double,
+        Color(c[4] as int),
+      );
     }
 
     // Far peaks (slowest parallax)

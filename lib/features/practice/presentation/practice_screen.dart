@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import '../../../core/models/feedback_report.dart';
+import 'package:uuid/uuid.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -8,7 +10,6 @@ import 'package:go_router/go_router.dart';
 import '../../../app/app_providers.dart';
 import '../../../app/app_router.dart';
 import '../../../app/theme/app_colors.dart';
-import '../../../core/models/practice_session.dart';
 import '../../../core/models/pose_metrics.dart';
 import '../../../core/models/speech_metrics.dart';
 import '../../../features/ai/feedback/local_llm_service.dart';
@@ -58,6 +59,9 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
   late bool _isMicOn;
   bool _isAnalyzing = false;
 
+  /// Generated once so retries never create a duplicate saved session.
+  final String _sessionId = const Uuid().v4();
+
   @override
   void initState() {
     super.initState();
@@ -82,7 +86,8 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
       if (widget.cameraName != null && selectedCamera == null) {
         throw StateError('The selected camera is no longer connected.');
       }
-      final camera = selectedCamera ??
+      final camera =
+          selectedCamera ??
           _firstOrNull(
             cameras.where(
               (item) => item.lensDirection == CameraLensDirection.front,
@@ -139,7 +144,6 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
       if (!mounted) return;
       setState(() => _elapsedSpeechSeconds++);
     });
-
   }
 
   Future<void> _startRealCapture() async {
@@ -177,7 +181,9 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
           _isCameraOn = _cameraController?.value.isInitialized == true;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Hindi masimulan ang recording/camera: $error')),
+          SnackBar(
+            content: Text('Could not start the recording/camera: $error'),
+          ),
         );
       }
     }
@@ -200,7 +206,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
       final audioPath = await _audio.stopAndGetPath();
       PoseMetrics? poseMetrics;
       if (_poseSession.isRunning) {
-        poseMetrics = await _poseSession.stop('practice-${DateTime.now().millisecondsSinceEpoch}');
+        poseMetrics = await _poseSession.stop(_sessionId);
       }
       final hasAudio = _isMicOn && audioPath != null && recordedSeconds > 0;
       final hasPose = poseMetrics != null && poseMetrics.totalFrames > 0;
@@ -213,10 +219,10 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
       final speechService = ref.read(speechRecognitionProvider);
       var metrics = SpeechMetrics.empty();
       if (hasAudio) {
-        final transcription = await speechService.transcribe(audioPath!);
+        final transcription = await speechService.transcribe(audioPath);
         if (!transcription.isSuccess) {
           throw StateError(
-            transcription.errorMessage ?? 'Hindi na-transcribe ang recording.',
+            transcription.errorMessage ?? 'Could not transcribe the recording.',
           );
         }
         metrics = speechService.calculateMetrics(
@@ -228,33 +234,57 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
       ref.read(lastPoseMetricsProvider.notifier).state = poseMetrics;
 
       final llm = LocalLlmService();
-      if (!llm.isLoaded) await llm.initialize();
-      final report = await ref.read(feedbackServiceProvider).generate(
+      try {
+        if (!llm.isLoaded) await llm.initialize();
+      } on Object {
+        // The local LLM is optional; rule-based feedback is still evidence-based.
+      }
+      final report = await ref
+          .read(feedbackServiceProvider)
+          .generate(
             speech: metrics,
             pose: poseMetrics,
             document: ref.read(lastDocAnalysisProvider),
             speakingGoal: widget.speechTopic,
           );
-      ref.read(lastReportProvider.notifier).state = report;
-      final session = PracticeSession(
-        id: 'practice-${DateTime.now().millisecondsSinceEpoch}',
-        date: DateTime.now(),
-        title: widget.speechTopic,
-        duration: Duration(seconds: seconds),
-        avgWpm: metrics.wordsPerMinute.round(),
-        fillerCount: metrics.totalFillers,
-        // Eye gaze is not tracked; keep this unset instead of relabeling posture.
-        eyeContactPct: 0,
-        paceScore: report.overallScore.round(),
-        starsEarned: 0,
-        improved: false,
-        goal: widget.speechTopic,
+      final uid = ref.read(currentUidProvider);
+      if (uid == null) throw StateError('Sign in again to save this session.');
+      // Save locally first; cloud sync happens afterwards.
+      final saved = await ref
+          .read(progressRepositoryProvider)
+          .saveCompletedPractice(
+            userId: uid,
+            sessionId: _sessionId,
+            practicePurpose: ref.read(selectedGoalProvider),
+            language: ref.read(selectedLanguageProvider),
+            topic: widget.speechTopic,
+            durationSeconds: seconds,
+            report: report,
+            speech: hasAudio ? metrics : null,
+            pose: hasPose ? poseMetrics : null,
+            audioPath: audioPath,
+          );
+      ref.read(lastReportProvider.notifier).state = FeedbackReport(
+        overallScore: report.overallScore,
+        summary: report.summary,
+        strengths: report.strengths,
+        improvements: report.improvements,
+        evidenceList: report.evidenceList,
+        limitations: report.limitations,
+        generatedAt: report.generatedAt,
+        localLlmPrompt: report.localLlmPrompt,
+        llmResponse: report.llmResponse,
+        starsEarned: saved.starsEarned,
       );
-      if (mounted) context.pushReplacement(AppRoutes.rehearsalAnalysis, extra: session);
+      unawaited(ref.read(syncControllerProvider.notifier).syncNow());
+      final session = practiceSessionFromRecord(saved);
+      if (mounted) {
+        context.pushReplacement(AppRoutes.rehearsalAnalysis, extra: session);
+      }
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Hindi natapos ang AI analysis: $error')),
+          SnackBar(content: Text('AI analysis did not finish: $error')),
         );
       }
     } finally {
@@ -296,7 +326,10 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                 alignment: Alignment.topRight,
                 child: TextButton.icon(
                   onPressed: _skipCountdown,
-                  icon: const Icon(Icons.fast_forward_rounded, color: AppColors.sky),
+                  icon: const Icon(
+                    Icons.fast_forward_rounded,
+                    color: AppColors.sky,
+                  ),
                   label: const Text(
                     'Skip to speech',
                     style: TextStyle(color: AppColors.sky),
@@ -338,10 +371,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                   decoration: BoxDecoration(
                     color: AppColors.blue.withValues(alpha: 0.15),
                     shape: BoxShape.circle,
-                    border: Border.all(
-                      color: AppColors.blue,
-                      width: 4,
-                    ),
+                    border: Border.all(color: AppColors.blue, width: 4),
                     boxShadow: const [
                       BoxShadow(
                         color: Color(0x334F7CFF),
@@ -385,11 +415,18 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
   Widget _buildLiveSpeechView() {
     if (_isAnalyzing) {
       return const Scaffold(
-        body: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-          CircularProgressIndicator(),
-          SizedBox(height: 16),
-          Text('Transcribing offline audio and preparing your Qwen feedback…'),
-        ])),
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text(
+                'Transcribing offline audio and preparing your Qwen feedback…',
+              ),
+            ],
+          ),
+        ),
       );
     }
     return Scaffold(
@@ -409,9 +446,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 // Timer that keeps track of the speech time
-                PracticeTimerWidget(
-                  elapsedSeconds: _elapsedSpeechSeconds,
-                ),
+                PracticeTimerWidget(elapsedSeconds: _elapsedSpeechSeconds),
 
                 // Self Camera PIP thumbnail
                 Container(
@@ -511,9 +546,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
             right: 0,
             bottom: 24,
             child: Center(
-              child: RecordingControlsWidget(
-                onEndSpeech: _endSpeech,
-              ),
+              child: RecordingControlsWidget(onEndSpeech: _endSpeech),
             ),
           ),
         ],
@@ -537,29 +570,30 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
           ),
         ],
       ),
-      child: Row(children: [
-        Icon(
-          _isMicOn && _audio.isRecording
-              ? Icons.mic_rounded
-              : Icons.mic_off_rounded,
-          color: _isMicOn && _audio.isRecording
-              ? AppColors.yellow
-              : Colors.white54,
-          size: 18,
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
+      child: Row(
+        children: [
+          Icon(
             _isMicOn && _audio.isRecording
-                ? 'Audio is recording locally for offline Whisper transcription.'
-                : 'Microphone is off. Speech delivery metrics are paused.',
-            style: const TextStyle(color: Colors.white, fontSize: 12),
+                ? Icons.mic_rounded
+                : Icons.mic_off_rounded,
+            color: _isMicOn && _audio.isRecording
+                ? AppColors.yellow
+                : Colors.white54,
+            size: 18,
           ),
-        ),
-      ]),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              _isMicOn && _audio.isRecording
+                  ? 'Audio is recording locally for offline Whisper transcription.'
+                  : 'Microphone is off. Speech delivery metrics are paused.',
+              style: const TextStyle(color: Colors.white, fontSize: 12),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-T? _firstOrNull<T>(Iterable<T> items) =>
-    items.isEmpty ? null : items.first;
+T? _firstOrNull<T>(Iterable<T> items) => items.isEmpty ? null : items.first;

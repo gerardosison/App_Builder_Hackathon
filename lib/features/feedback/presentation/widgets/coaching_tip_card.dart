@@ -15,12 +15,17 @@ class CoachingTipCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.sky,
+        color: dark ? scheme.surfaceContainerHigh : AppColors.sky,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.navy, width: 1.5),
+        border: Border.all(
+          color: dark ? scheme.outlineVariant : AppColors.navy,
+          width: 1.5,
+        ),
         boxShadow: const [
           BoxShadow(
             color: Color(0x1014213D),
@@ -147,4 +152,3 @@ class CoachingTipCard extends StatelessWidget {
     );
   }
 }
-

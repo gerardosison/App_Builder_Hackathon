@@ -1,29 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../app/app_providers.dart';
+import '../../../data/repositories/profile_repository.dart';
+import '../services/auth_service.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../core/widgets/pip_misc.dart';
 import '../../onboarding/presentation/welcome_screen.dart';
 
-class RegisterScreen extends StatefulWidget {
+class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   int _step = 0;
 
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
   final _nicknameController = TextEditingController();
   final _usernameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
   bool _obscurePassword = true;
 
-  // Reserved usernames to demonstrate uniqueness check
-  static const _takenUsernames = {'admin', 'speaker', 'user', 'test', 'pipspeak'};
+  bool _busy = false;
+
+  /// Username most recently rejected by the server as already taken.
+  String? _takenUsername;
 
   @override
   void dispose() {
@@ -31,25 +39,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _lastNameController.dispose();
     _nicknameController.dispose();
     _usernameController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
-  bool get _isUsernameUnique {
-    final text = _usernameController.text.trim().toLowerCase();
-    if (text.isEmpty || text.length < 3) return false;
-    return !_takenUsernames.contains(text);
-  }
+  bool get _isUsernameUnique =>
+      ProfileRepository.isValidUsername(_usernameController.text) &&
+      !_isUsernameTaken;
 
-  bool get _isUsernameTaken {
-    final text = _usernameController.text.trim().toLowerCase();
-    if (text.isEmpty) return false;
-    return _takenUsernames.contains(text);
-  }
+  bool get _isUsernameTaken =>
+      _takenUsername != null &&
+      ProfileRepository.normalizeUsername(_usernameController.text) ==
+          _takenUsername;
 
   bool get _isPasswordValid => _passwordController.text.length >= 8;
 
-  void _next() {
+  Future<void> _next() async {
+    if (_busy) return;
     if (_step == 0) {
       if (_firstNameController.text.trim().isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -87,7 +94,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!_isUsernameUnique) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please enter a unique username with at least 3 characters.'),
+          content: Text(
+            'Usernames use 3–20 lowercase letters, numbers, dots or underscores.',
+          ),
+          backgroundColor: AppColors.coral,
+        ),
+      );
+      return;
+    }
+
+    if (!AuthService.isValidEmail(_emailController.text)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid email address.'),
           backgroundColor: AppColors.coral,
         ),
       );
@@ -108,14 +127,48 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final nickname = _nicknameController.text.trim().isNotEmpty
         ? _nicknameController.text.trim()
         : (_firstNameController.text.trim().isNotEmpty
-            ? _firstNameController.text.trim()
-            : 'Speaker');
+              ? _firstNameController.text.trim()
+              : 'Speaker');
 
+    final fullName = [
+      _firstNameController.text.trim(),
+      _lastNameController.text.trim(),
+    ].where((part) => part.isNotEmpty).join(' ');
+
+    setState(() => _busy = true);
+    try {
+      await ref
+          .read(authServiceProvider)
+          .register(
+            fullName: fullName,
+            nickname: nickname,
+            username: _usernameController.text,
+            email: _emailController.text,
+            password: _passwordController.text,
+          );
+    } on AuthFailure catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        if (error.message.contains('username is already taken')) {
+          _takenUsername = ProfileRepository.normalizeUsername(
+            _usernameController.text,
+          );
+        }
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.message),
+          backgroundColor: AppColors.coral,
+        ),
+      );
+      return;
+    }
+    if (!mounted) return;
+    setState(() => _busy = false);
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
-        builder: (_) => WelcomeScreen(nickname: nickname),
-      ),
+      MaterialPageRoute(builder: (_) => WelcomeScreen(nickname: nickname)),
     );
   }
 
@@ -146,10 +199,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       transitionDuration: const Duration(milliseconds: 320),
       pageBuilder: (ctx, anim1, anim2) => const SizedBox.shrink(),
       transitionBuilder: (ctx, anim, secondaryAnim, child) {
-        final curved = CurvedAnimation(
-          parent: anim,
-          curve: Curves.easeOutBack,
-        );
+        final curved = CurvedAnimation(parent: anim, curve: Curves.easeOutBack);
         return ScaleTransition(
           scale: Tween<double>(begin: 0.82, end: 1.0).animate(curved),
           child: FadeTransition(
@@ -186,27 +236,33 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               actionsAlignment: MainAxisAlignment.center,
               actions: [
-                Row(children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.of(ctx).pop(true),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.coral,
-                        side: const BorderSide(color: AppColors.coral),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(ctx).pop(true),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.coral,
+                          side: const BorderSide(color: AppColors.coral),
+                        ),
+                        child: const Text(
+                          'Cancel registration',
+                          textAlign: TextAlign.center,
+                        ),
                       ),
-                      child: const Text('Cancel registration',
-                          textAlign: TextAlign.center),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.of(ctx).pop(false),
-                      child: const Text('Continue registration',
-                          textAlign: TextAlign.center),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.of(ctx).pop(false),
+                        child: const Text(
+                          'Continue registration',
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
                     ),
-                  ),
-                ]),
+                  ],
+                ),
               ],
             ),
           ),
@@ -242,10 +298,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           title: 'Step ${_step + 1} of 3',
           onBack: _previous,
           actions: [
-            TextButton(
-              onPressed: _confirmExit,
-              child: const Text('Cancel'),
-            ),
+            TextButton(onPressed: _confirmExit, child: const Text('Cancel')),
           ],
         ),
         body: SafeArea(
@@ -267,7 +320,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             height: 6,
                             margin: EdgeInsets.only(right: index == 2 ? 0 : 8),
                             decoration: BoxDecoration(
-                              color: index <= _step ? AppColors.blue : AppColors.line,
+                              color: index <= _step
+                                  ? AppColors.blue
+                                  : AppColors.line,
                               borderRadius: BorderRadius.circular(8),
                             ),
                           ),
@@ -280,7 +335,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     Align(
                       alignment: Alignment.centerLeft,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 5,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.sky,
                           borderRadius: BorderRadius.circular(12),
@@ -355,7 +413,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.info_outline_rounded, size: 20, color: AppColors.blue),
+                            Icon(
+                              Icons.info_outline_rounded,
+                              size: 20,
+                              color: AppColors.blue,
+                            ),
                             SizedBox(width: 10),
                             Expanded(
                               child: Text(
@@ -392,6 +454,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       const SizedBox(height: 22),
 
                       TextField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        autofillHints: const [AutofillHints.email],
+                        decoration: const InputDecoration(
+                          labelText: 'Email',
+                          hintText: 'e.g. alex@school.edu',
+                          prefixIcon: Icon(Icons.mail_outline_rounded),
+                        ),
+                      ),
+                      const SizedBox(height: 22),
+
+                      TextField(
                         controller: _passwordController,
                         obscureText: _obscurePassword,
                         onChanged: (_) => setState(() {}),
@@ -400,9 +474,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           hintText: 'Enter at least 8 characters',
                           prefixIcon: const Icon(Icons.lock_outline_rounded),
                           suffixIcon: IconButton(
-                            tooltip: _obscurePassword ? 'Show password' : 'Hide password',
-                            onPressed: () =>
-                                setState(() => _obscurePassword = !_obscurePassword),
+                            tooltip: _obscurePassword
+                                ? 'Show password'
+                                : 'Hide password',
+                            onPressed: () => setState(
+                              () => _obscurePassword = !_obscurePassword,
+                            ),
                             icon: Icon(
                               _obscurePassword
                                   ? Icons.visibility_outlined
@@ -426,9 +503,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     SizedBox(
                       height: 54,
                       child: ElevatedButton(
-                        onPressed: _next,
+                        onPressed: _busy ? null : _next,
                         child: Text(
-                          _step == 2 ? 'Proceed to Welcome Screen' : 'Continue',
+                          _busy
+                              ? 'Creating account…'
+                              : (_step == 2 ? 'Create account' : 'Continue'),
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
@@ -475,8 +554,11 @@ class _UsernameIndicator extends StatelessWidget {
     if (text.isEmpty) {
       return Row(
         children: [
-          Icon(Icons.info_outline_rounded,
-              size: 16, color: AppColors.secondaryText(context)),
+          Icon(
+            Icons.info_outline_rounded,
+            size: 16,
+            color: AppColors.secondaryText(context),
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -531,8 +613,11 @@ class _UsernameIndicator extends StatelessWidget {
 
     return Row(
       children: [
-        Icon(Icons.info_outline_rounded,
-            size: 16, color: AppColors.secondaryText(context)),
+        Icon(
+          Icons.info_outline_rounded,
+          size: 16,
+          color: AppColors.secondaryText(context),
+        ),
         const SizedBox(width: 8),
         Expanded(
           child: Text(
@@ -550,10 +635,7 @@ class _UsernameIndicator extends StatelessWidget {
 
 /// Indicator for password 8 min characters requirement
 class _PasswordIndicator extends StatelessWidget {
-  const _PasswordIndicator({
-    required this.length,
-    required this.isValid,
-  });
+  const _PasswordIndicator({required this.length, required this.isValid});
 
   final int length;
   final bool isValid;
@@ -565,7 +647,9 @@ class _PasswordIndicator extends StatelessWidget {
         : (length > 0 ? AppColors.coral : AppColors.secondaryText(context));
     final icon = isValid
         ? Icons.check_circle_rounded
-        : (length > 0 ? Icons.error_outline_rounded : Icons.info_outline_rounded);
+        : (length > 0
+              ? Icons.error_outline_rounded
+              : Icons.info_outline_rounded);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -595,7 +679,9 @@ class _PasswordIndicator extends StatelessWidget {
             value: (length / 8).clamp(0.0, 1.0),
             backgroundColor: AppColors.line,
             valueColor: AlwaysStoppedAnimation<Color>(
-              isValid ? Colors.green : (length >= 4 ? AppColors.yellow : AppColors.coral),
+              isValid
+                  ? Colors.green
+                  : (length >= 4 ? AppColors.yellow : AppColors.coral),
             ),
             minHeight: 4,
           ),

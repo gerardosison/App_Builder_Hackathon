@@ -52,6 +52,15 @@ dependencies:
   archive: ^4.3.0
   xml: ^7.1.0
   google_fonts: ^9.0.0
+  firebase_core: ^4.15.0
+  firebase_auth: ^6.7.0
+  cloud_firestore: ^6.10.0
+  drift: 2.35.2
+  drift_flutter: 0.3.1
+  sqlite3: 3.5.2
+  uuid: 4.6.0
+  connectivity_plus: 7.3.2
+  image_picker: ^1.1.2
 
 dev_dependencies:
   flutter_test:
@@ -63,6 +72,10 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  drift_dev: 2.35.1
+  build_runner: 2.15.1
+  fake_cloud_firestore: ^4.3.0
+  firebase_auth_mocks: ^0.15.2
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

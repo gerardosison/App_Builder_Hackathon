@@ -12,6 +12,8 @@ class PipSpeakApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
     final themeMode = ref.watch(themeModeProvider);
+    // Keep the sync controller alive for the whole app session.
+    ref.listen(syncControllerProvider, (_, _) {});
     return MaterialApp.router(
       title: 'PipSpeak',
       debugShowCheckedModeBanner: false,
@@ -19,6 +21,36 @@ class PipSpeakApp extends ConsumerWidget {
       darkTheme: AppTheme.dark(),
       themeMode: themeMode,
       routerConfig: router,
+    );
+  }
+}
+
+/// Shown when Firebase is not configured for the current platform.
+class FirebaseSetupErrorApp extends StatelessWidget {
+  const FirebaseSetupErrorApp({super.key, required this.error});
+
+  final Object error;
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.light(),
+      home: Scaffold(
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Center(
+              child: Text(
+                'PipSpeak could not start Firebase on this platform.\n\n'
+                'Run `flutterfire configure` for this platform and rebuild.\n\n'
+                '$error',
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
