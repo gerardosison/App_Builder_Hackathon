@@ -17,8 +17,10 @@ import '../services/audio_recorder_service.dart';
 import '../services/camera_platform_support.dart';
 import '../services/pose_camera_session.dart';
 import 'widgets/audience_character.dart';
+import 'widgets/camera_preview.dart';
 import 'widgets/practice_timer.dart';
 import 'widgets/recording_controls.dart';
+import 'speech_analysis_processing_screen.dart';
 
 class PracticeScreen extends ConsumerStatefulWidget {
   const PracticeScreen({
@@ -58,6 +60,13 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
   late bool _isCameraOn;
   late bool _isMicOn;
   bool _isAnalyzing = false;
+  bool _analysisCancelled = false;
+  String? _processingAudioPath;
+  double _micLevel = 0;
+  StreamSubscription<double>? _micLevelSubscription;
+  final ValueNotifier<String> _analysisStatus = ValueNotifier(
+    'Stopping the recording…',
+  );
 
   /// Generated once so retries never create a duplicate saved session.
   final String _sessionId = const Uuid().v4();
@@ -159,6 +168,12 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
         }
         _audio.selectInputDevice(selectedDevice);
         await _audio.startRecording(device: selectedDevice);
+        await _micLevelSubscription?.cancel();
+        _micLevelSubscription = _audio.amplitudeLevelStream().listen((level) {
+          if (mounted && _isMicOn && !_isAnalyzing) {
+            setState(() => _micLevel = level);
+          }
+        });
       }
       if (_isCameraOn) {
         await (_cameraPreparation ??= _prepareCamera());
@@ -194,20 +209,41 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
     _startLiveSpeech();
   }
 
-  // Step 4: The user can end the speech by clicking the X button at the bottom middle
+  // Step 4: End the live speech and prepare its local analysis.
   Future<void> _endSpeech() async {
+    if (_isAnalyzing) return;
     _speechTimer?.cancel();
+    _analysisCancelled = false;
+    _processingAudioPath = null;
+    _analysisStatus.value = 'Stopping the recording…';
     setState(() => _isAnalyzing = true);
+    unawaited(
+      context.push<void>(
+        AppRoutes.practiceProcessing,
+        extra: SpeechAnalysisProcessingRequest(
+          status: _analysisStatus,
+          onCancel: _cancelPracticeAttempt,
+        ),
+      ),
+    );
     try {
+      await WidgetsBinding.instance.endOfFrame;
+      _ensureAnalysisActive();
       final recordedSeconds = _audio.secondsElapsed;
       final seconds = recordedSeconds > 0
           ? recordedSeconds
           : _elapsedSpeechSeconds;
+      await _micLevelSubscription?.cancel();
+      _micLevelSubscription = null;
       final audioPath = await _audio.stopAndGetPath();
+      _processingAudioPath = audioPath;
+      _ensureAnalysisActive();
       PoseMetrics? poseMetrics;
       if (_poseSession.isRunning) {
+        _analysisStatus.value = 'Analyzing camera frames locally…';
         poseMetrics = await _poseSession.stop(_sessionId);
       }
+      _ensureAnalysisActive();
       final hasAudio = _isMicOn && audioPath != null && recordedSeconds > 0;
       final hasPose = poseMetrics != null && poseMetrics.totalFrames > 0;
       if (!hasAudio && !hasPose) {
@@ -219,7 +255,9 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
       final speechService = ref.read(speechRecognitionProvider);
       var metrics = SpeechMetrics.empty();
       if (hasAudio) {
+        _analysisStatus.value = 'Transcribing speech with offline Whisper…';
         final transcription = await speechService.transcribe(audioPath);
+        _ensureAnalysisActive();
         if (!transcription.isSuccess) {
           throw StateError(
             transcription.errorMessage ?? 'Could not transcribe the recording.',
@@ -234,11 +272,14 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
       ref.read(lastPoseMetricsProvider.notifier).state = poseMetrics;
 
       final llm = LocalLlmService();
-      try {
-        if (!llm.isLoaded) await llm.initialize();
-      } on Object {
-        // The local LLM is optional; rule-based feedback is still evidence-based.
+      if (!llm.isLoaded) {
+        _analysisStatus.value = 'Loading the local Qwen model…';
+        await llm.initialize(onStatus: (status) {
+          if (mounted && !_analysisCancelled) _analysisStatus.value = status;
+        });
       }
+      _ensureAnalysisActive();
+      _analysisStatus.value = 'The AI Coach is preparing your feedback…';
       final report = await ref
           .read(feedbackServiceProvider)
           .generate(
@@ -247,9 +288,11 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
             document: ref.read(lastDocAnalysisProvider),
             speakingGoal: widget.speechTopic,
           );
+      _ensureAnalysisActive();
       final uid = ref.read(currentUidProvider);
       if (uid == null) throw StateError('Sign in again to save this session.');
       // Save locally first; cloud sync happens afterwards.
+      _analysisStatus.value = 'Saving your practice insights…';
       final saved = await ref
           .read(progressRepositoryProvider)
           .saveCompletedPractice(
@@ -264,6 +307,8 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
             pose: hasPose ? poseMetrics : null,
             audioPath: audioPath,
           );
+      _ensureAnalysisActive();
+      _processingAudioPath = null;
       ref.read(lastReportProvider.notifier).state = FeedbackReport(
         overallScore: report.overallScore,
         summary: report.summary,
@@ -282,24 +327,56 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
         context.pushReplacement(AppRoutes.rehearsalAnalysis, extra: session);
       }
     } catch (error) {
-      if (mounted) {
+      if (!_analysisCancelled && mounted) {
+        _analysisCancelled = true;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('AI analysis did not finish: $error')),
         );
+        context.go(AppRoutes.practiceSetup);
       }
     } finally {
-      if (mounted) setState(() => _isAnalyzing = false);
+      if (mounted && !_analysisCancelled) setState(() => _isAnalyzing = false);
     }
+  }
+
+  void _ensureAnalysisActive() {
+    if (_analysisCancelled) throw const _PracticeAnalysisCancelled();
+  }
+
+  void _cancelPracticeAttempt() {
+    if (_analysisCancelled) return;
+    _analysisCancelled = true;
+    _speechTimer?.cancel();
+    _analysisStatus.value = 'Speech attempt discarded.';
+    unawaited(_micLevelSubscription?.cancel());
+    _micLevelSubscription = null;
+    unawaited(LocalLlmService().stopGeneration());
+    if (mounted) context.go(AppRoutes.practiceSetup);
   }
 
   @override
   void dispose() {
+    if (_isAnalyzing && !_analysisCancelled) {
+      _analysisCancelled = true;
+      unawaited(LocalLlmService().stopGeneration());
+    }
     _countdownTimer?.cancel();
     _speechTimer?.cancel();
-    unawaited(_audio.dispose());
+    unawaited(_micLevelSubscription?.cancel());
+    _analysisStatus.dispose();
+    if (_analysisCancelled) {
+      unawaited(_discardAudioAndDispose());
+    } else {
+      unawaited(_audio.dispose());
+    }
     unawaited(_poseSession.dispose());
     unawaited(_cameraController?.dispose());
     super.dispose();
+  }
+
+  Future<void> _discardAudioAndDispose() async {
+    await _audio.discardRecording(path: _processingAudioPath);
+    await _audio.dispose();
   }
 
   @override
@@ -413,22 +490,6 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
   // STEP 4: END SPEECH BY CLICKING THE X BUTTON AT BOTTOM MIDDLE.
   // ---------------------------------------------------------------------------
   Widget _buildLiveSpeechView() {
-    if (_isAnalyzing) {
-      return const Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text(
-                'Transcribing offline audio and preparing your Qwen feedback…',
-              ),
-            ],
-          ),
-        ),
-      );
-    }
     return Scaffold(
       body: Stack(
         fit: StackFit.expand,
@@ -471,7 +532,9 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                           _cameraController?.value.isInitialized == true)
                         ClipRRect(
                           borderRadius: BorderRadius.circular(14),
-                          child: CameraPreview(_cameraController!),
+                          child: CoverCameraPreview(
+                            controller: _cameraController!,
+                          ),
                         )
                       else
                         const Icon(
@@ -570,26 +633,67 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            _isMicOn && _audio.isRecording
-                ? Icons.mic_rounded
-                : Icons.mic_off_rounded,
-            color: _isMicOn && _audio.isRecording
-                ? AppColors.yellow
-                : Colors.white54,
-            size: 18,
+          Row(
+            children: [
+              Icon(
+                _isMicOn && _audio.isRecording
+                    ? Icons.mic_rounded
+                    : Icons.mic_off_rounded,
+                color: _isMicOn && _audio.isRecording
+                    ? AppColors.yellow
+                    : Colors.white54,
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  _isMicOn && _audio.isRecording
+                      ? 'Live microphone input'
+                      : 'Microphone is off. Speech delivery metrics are paused.',
+                  style: const TextStyle(color: Colors.white, fontSize: 12),
+                ),
+              ),
+              if (_isMicOn && _audio.isRecording)
+                Text(
+                  '${(_micLevel * 100).round()}%',
+                  style: const TextStyle(
+                    color: AppColors.yellow,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+            ],
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              _isMicOn && _audio.isRecording
-                  ? 'Audio is recording locally for offline Whisper transcription.'
-                  : 'Microphone is off. Speech delivery metrics are paused.',
-              style: const TextStyle(color: Colors.white, fontSize: 12),
+          if (_isMicOn && _audio.isRecording) ...[
+            const SizedBox(height: 10),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: List.generate(24, (index) {
+                final wave = 0.35 + ((index * 7) % 13) / 20;
+                final height = 4 + 24 * _micLevel * wave;
+                return Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 1.5),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 100),
+                      height: height,
+                      decoration: BoxDecoration(
+                        color: _micLevel > 0.72
+                            ? AppColors.coral
+                            : _micLevel > 0.36
+                                ? AppColors.yellow
+                                : AppColors.mint,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ),
+                );
+              }),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -597,3 +701,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
 }
 
 T? _firstOrNull<T>(Iterable<T> items) => items.isEmpty ? null : items.first;
+
+class _PracticeAnalysisCancelled implements Exception {
+  const _PracticeAnalysisCancelled();
+}

@@ -1,11 +1,10 @@
-import
- 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:llama_flutter_android/llama_flutter_android.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../core/widgets/pip_misc.dart';
+import '../feedback/local_llm_runtime_interface.dart';
 import '../feedback/local_llm_service.dart';
 
 class LocalCoachScreen extends StatefulWidget {
@@ -21,7 +20,9 @@ class _LocalCoachScreenState extends State<LocalCoachScreen> {
   final _scroll = ScrollController();
   final List<_CoachMessage> _messages = [];
   bool _busy = false;
-  String _status = 'Offline Qwen assistant';
+  late String _status = _llm.isSupported
+      ? 'On-device Qwen loads when you ask your first question.'
+      : 'Local AI Coach inference is available in the Android app.';
 
   @override
   void dispose() {
@@ -38,7 +39,9 @@ class _LocalCoachScreenState extends State<LocalCoachScreen> {
       _busy = true;
       _messages.add(_CoachMessage(question, true));
       _messages.add(_CoachMessage('', false));
-      _status = _llm.isLoaded ? 'Qwen is responding…' : 'Loading local Qwen…';
+      _status = _llm.isLoaded
+          ? 'AI Coach is responding…'
+          : 'Loading Qwen locally…';
     });
     final replyIndex = _messages.length - 1;
     final rawReply = StringBuffer();
@@ -53,15 +56,18 @@ class _LocalCoachScreenState extends State<LocalCoachScreen> {
       final history = _messages
           .take(replyIndex - 1)
           .map(
-            (message) => ChatMessage(
+            (message) => LocalChatMessage(
               role: message.isUser ? 'user' : 'assistant',
               content: message.text,
             ),
           )
           .toList();
+      final recentHistory = history.length > 8
+          ? history.sublist(history.length - 8)
+          : history;
       await for (final token in _llm.generateStream(
         userMessage: question,
-        conversationHistory: history,
+        conversationHistory: recentHistory,
         maxTokens: 256,
       )) {
         if (!mounted) return;
@@ -73,6 +79,9 @@ class _LocalCoachScreenState extends State<LocalCoachScreen> {
         });
         _scrollToBottom();
       }
+      if (LocalLlmService.stripThinking(rawReply.toString()).isEmpty) {
+        throw StateError('Qwen returned an empty answer. Please try again.');
+      }
       if (mounted) {
         setState(() {
           _messages[replyIndex].text = LocalLlmService.stripThinking(
@@ -80,12 +89,13 @@ class _LocalCoachScreenState extends State<LocalCoachScreen> {
           );
         });
       }
-      if (mounted) setState(() => _status = 'Offline Qwen assistant');
+      if (mounted) setState(() => _status = 'On-device Qwen is ready.');
     } catch (error) {
       if (mounted) {
         setState(() {
-          _messages[replyIndex].text = 'Hindi makasagot ang local Qwen: $error';
-          _status = 'Qwen could not answer';
+          _messages[replyIndex].text =
+              'The AI Coach could not respond: $error';
+          _status = 'AI Coach could not respond.';
         });
       }
     } finally {
@@ -108,7 +118,7 @@ class _LocalCoachScreenState extends State<LocalCoachScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: pipAppBar(context, title: 'Ask Local Qwen'),
+    appBar: pipAppBar(context, title: 'AI Coach'),
     body: SafeArea(
       child: Column(
         children: [
@@ -119,7 +129,12 @@ class _LocalCoachScreenState extends State<LocalCoachScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
                 child: Row(
                   children: [
-                    const Icon(Icons.offline_bolt, color: AppColors.secondary),
+                    Icon(
+                      _llm.isSupported
+                          ? Icons.offline_bolt_rounded
+                          : Icons.info_outline_rounded,
+                      color: AppColors.secondary,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -139,11 +154,13 @@ class _LocalCoachScreenState extends State<LocalCoachScreen> {
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 1040),
                 child: _messages.isEmpty
-                    ? const Center(
+                    ? Center(
                         child: Padding(
-                          padding: EdgeInsets.all(28),
+                          padding: const EdgeInsets.all(28),
                           child: Text(
-                            'Magtanong tungkol sa speech, presentation, o kahit ibang paksa. Sasagot ang Qwen nang offline sa device na ito.',
+                            _llm.isSupported
+                                ? 'Ask the AI Coach about a speech, presentation, or any other topic. Qwen answers locally on this device.'
+                                : 'The local Qwen model is not available in this browser. Open the Android app to chat with the AI Coach; your questions stay on-device.',
                             textAlign: TextAlign.center,
                           ),
                         ),
@@ -202,16 +219,16 @@ class _LocalCoachScreenState extends State<LocalCoachScreen> {
                         textInputAction: TextInputAction.send,
                         onSubmitted: (_) => _send(),
                         decoration: const InputDecoration(
-                          hintText: 'Type your question…',
+                          hintText: 'Ask the AI Coach…',
                           border: OutlineInputBorder(),
                         ),
                       ),
                     ),
                     const SizedBox(width: 8),
                     IconButton.filled(
-                      onPressed: _busy ? null : _send,
+                      onPressed: _busy || !_llm.isSupported ? null : _send,
                       icon: const Icon(Icons.send_rounded),
-                      tooltip: 'Send to local Qwen',
+                      tooltip: 'Ask the AI Coach',
                     ),
                   ],
                 ),

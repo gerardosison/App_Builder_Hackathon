@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:camera/camera.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -34,7 +35,7 @@ class _SetupScreenState extends State<SetupScreen> {
   bool _micWorking = false;
   bool _isRefreshingDevices = false;
   double _micLevel = 0;
-  Timer? _micLevelTimer;
+  StreamSubscription<double>? _micLevelSubscription;
   List<CameraDescription> _cameras = const [];
   List<InputDevice> _microphones = const [];
   String? _selectedCamera;
@@ -51,7 +52,7 @@ class _SetupScreenState extends State<SetupScreen> {
 
   @override
   void dispose() {
-    _micLevelTimer?.cancel();
+    unawaited(_micLevelSubscription?.cancel());
     unawaited(_disposeAudioMonitor());
     unawaited(_cameraController?.dispose());
     super.dispose();
@@ -180,23 +181,28 @@ class _SetupScreenState extends State<SetupScreen> {
     );
     final device = matching.isEmpty ? null : matching.first;
     _audioMonitor.selectInputDevice(device);
-    if (!_audioMonitor.isRecording) await _audioMonitor.startRecording();
+    if (!_audioMonitor.isRecording) {
+      if (kIsWeb) {
+        await _audioMonitor.startLevelMonitoring(device: device);
+      } else {
+        await _audioMonitor.startRecording(device: device);
+      }
+    }
     if (mounted) {
       setState(() => _micWorking = _audioMonitor.isRecording);
-      _micLevelTimer?.cancel();
-      _micLevelTimer = Timer.periodic(
-        const Duration(milliseconds: 180),
-        (_) async {
-          final level = await _audioMonitor.currentAmplitudeLevel();
-          if (mounted) setState(() => _micLevel = level);
-        },
-      );
+      await _micLevelSubscription?.cancel();
+      _micLevelSubscription = _audioMonitor
+          .amplitudeLevelStream()
+          .listen((level) {
+            if (mounted && _isMicOn) setState(() => _micLevel = level);
+          });
     }
   }
 
   Future<void> _toggleMicrophone(bool enabled) async {
     if (!enabled) {
-      _micLevelTimer?.cancel();
+      await _micLevelSubscription?.cancel();
+      _micLevelSubscription = null;
       await _audioMonitor.cancelRecording();
       if (mounted) {
         setState(() {
@@ -275,7 +281,8 @@ class _SetupScreenState extends State<SetupScreen> {
 
   Future<void> _selectMicrophone(String? id) async {
     if (id == null) return;
-    _micLevelTimer?.cancel();
+    await _micLevelSubscription?.cancel();
+    _micLevelSubscription = null;
     await _audioMonitor.cancelRecording();
     if (!mounted) return;
     setState(() {
@@ -349,7 +356,8 @@ class _SetupScreenState extends State<SetupScreen> {
 
       if (_isMicOn) {
         if (microphone == null) {
-          _micLevelTimer?.cancel();
+          await _micLevelSubscription?.cancel();
+          _micLevelSubscription = null;
           await _audioMonitor.cancelRecording();
           setState(() {
             _isMicOn = false;
@@ -358,7 +366,8 @@ class _SetupScreenState extends State<SetupScreen> {
           });
         } else if (microphone.id != previousMicrophone ||
             !_audioMonitor.isRecording) {
-          _micLevelTimer?.cancel();
+          await _micLevelSubscription?.cancel();
+          _micLevelSubscription = null;
           await _audioMonitor.cancelRecording();
           await _startMicrophonePreview();
         }
@@ -381,7 +390,8 @@ class _SetupScreenState extends State<SetupScreen> {
   }
 
   Future<void> _proceedToCountdown() async {
-    _micLevelTimer?.cancel();
+    await _micLevelSubscription?.cancel();
+    _micLevelSubscription = null;
     await _audioMonitor.cancelRecording();
     await _cameraController?.dispose();
     _cameraController = null;
@@ -617,8 +627,9 @@ class _SetupScreenState extends State<SetupScreen> {
                         width: double.infinity,
                         height: 54,
                         child: ElevatedButton.icon(
-                          onPressed: (_isCameraOn && _cameraWorking) ||
-                                  (_isMicOn && _micWorking)
+                          onPressed: !kIsWeb &&
+                                  ((_isCameraOn && _cameraWorking) ||
+                                      (_isMicOn && _micWorking))
                               ? _proceedToCountdown
                               : null,
                           icon: const Icon(Icons.arrow_forward_rounded),
@@ -633,12 +644,15 @@ class _SetupScreenState extends State<SetupScreen> {
                       ),
                     ),
                   ),
-                  if (!((_isCameraOn && _cameraWorking) ||
-                      (_isMicOn && _micWorking)))
+                  if (kIsWeb ||
+                      !((_isCameraOn && _cameraWorking) ||
+                          (_isMicOn && _micWorking)))
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
                       child: Text(
-                        'Turn on an available camera or microphone to continue.',
+                        kIsWeb
+                            ? 'Camera and microphone previews work in this browser. Offline speech analysis currently requires the Android app.'
+                            : 'Turn on an available camera or microphone to continue.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: AppColors.secondaryText(context),

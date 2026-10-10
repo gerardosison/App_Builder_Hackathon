@@ -46,13 +46,16 @@ class HomeScreen extends StatelessWidget {
       final wide = constraints.maxWidth >= 1000;
       final shortWindow = constraints.maxHeight < 480;
       final extendedRail = constraints.maxWidth >= 1240;
+      final hideNavigation = location == AppRoutes.practiceProcessing;
       // GoRouter's ShellRoute child is a keyed Navigator. Keep it mounted only
       // once; AnimatedSwitcher would retain the outgoing Navigator while the
       // incoming route is mounted, which duplicates its GlobalKey.
       final routeContent = child ?? const HomeLandingScreen();
 
       return Scaffold(
-        body: wide && shortWindow
+        body: hideNavigation
+            ? routeContent
+            : wide && shortWindow
             ? Column(
                 children: [
                   NavigationBar(
@@ -156,7 +159,7 @@ class HomeScreen extends StatelessWidget {
                 ],
               )
             : routeContent,
-        bottomNavigationBar: wide
+        bottomNavigationBar: wide || hideNavigation
             ? null
             : Padding(
                 padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),

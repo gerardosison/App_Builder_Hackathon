@@ -6,12 +6,12 @@ import 'package:flutter/material.dart';
 import 'package:record/record.dart';
 import 'package:camera/camera.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
-import 'package:llama_flutter_android/llama_flutter_android.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:audioplayers/audioplayers.dart';
 import 'package:file_picker/file_picker.dart';
 import '../feedback/local_llm_service.dart';
+import '../feedback/local_llm_runtime_interface.dart';
 import '../speech/whisper_service.dart';
 import '../../documents/services/pdf_extraction_service.dart';
 
@@ -729,7 +729,7 @@ class _RealTestDashboardState extends State<RealTestDashboard>
           .toList()
           .reversed
           .map(
-            (message) => ChatMessage(
+            (message) => LocalChatMessage(
               role: message.isUser ? 'user' : 'assistant',
               content: message.text.length > 500
                   ? message.text.substring(0, 500)
