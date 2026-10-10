@@ -254,9 +254,12 @@ class _HomeTabView extends StatelessWidget {
           style: Theme.of(context).textTheme.displaySmall,
         ),
         const SizedBox(height: 8),
-        const Text(
+        Text(
           'Ready for a small win today? Take on today’s speech exercise.',
-          style: TextStyle(fontSize: 15, color: AppColors.navySoft),
+          style: TextStyle(
+            fontSize: 15,
+            color: AppColors.secondaryText(context),
+          ),
         ),
         const SizedBox(height: 24),
 
@@ -391,7 +394,10 @@ class _StatCard extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             label,
-            style: const TextStyle(fontSize: 12, color: AppColors.navySoft),
+            style: TextStyle(
+              fontSize: 12,
+              color: AppColors.secondaryText(context),
+            ),
           ),
         ],
       ),

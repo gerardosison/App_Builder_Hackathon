@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 
@@ -10,6 +9,9 @@ class CameraPreviewWidget extends StatefulWidget {
     super.key,
     this.isCameraOn = true,
     this.isMicOn = true,
+    this.cameraWorking = false,
+    this.micWorking = false,
+    this.micLevel = 0,
     this.controller,
     this.onToggleCamera,
     this.onToggleMic,
@@ -17,6 +19,9 @@ class CameraPreviewWidget extends StatefulWidget {
 
   final bool isCameraOn;
   final bool isMicOn;
+  final bool cameraWorking;
+  final bool micWorking;
+  final double micLevel;
   final CameraController? controller;
   final ValueChanged<bool>? onToggleCamera;
   final ValueChanged<bool>? onToggleMic;
@@ -25,25 +30,7 @@ class CameraPreviewWidget extends StatefulWidget {
   State<CameraPreviewWidget> createState() => _CameraPreviewWidgetState();
 }
 
-class _CameraPreviewWidgetState extends State<CameraPreviewWidget>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _pulseController;
-
-  @override
-  void initState() {
-    super.initState();
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    )..repeat(reverse: true);
-  }
-
-  @override
-  void dispose() {
-    _pulseController.dispose();
-    super.dispose();
-  }
-
+class _CameraPreviewWidgetState extends State<CameraPreviewWidget> {
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -64,7 +51,7 @@ class _CameraPreviewWidgetState extends State<CameraPreviewWidget>
         borderRadius: BorderRadius.circular(26),
         child: Stack(
           children: [
-            // Camera feed simulation or "Camera Off" state
+            // Live camera feed or the explicit "Camera Off" state
             Positioned.fill(
               child: widget.isCameraOn
                   ? _buildCameraFeed()
@@ -83,16 +70,6 @@ class _CameraPreviewWidgetState extends State<CameraPreviewWidget>
                       color: Colors.white.withValues(alpha: 0.45),
                       width: 2,
                       strokeAlign: BorderSide.strokeAlignInside,
-                    ),
-                  ),
-                  child: Center(
-                    child: Text(
-                      'Center face here',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.7),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                      ),
                     ),
                   ),
                 ),
@@ -119,13 +96,19 @@ class _CameraPreviewWidgetState extends State<CameraPreviewWidget>
                           width: 8,
                           height: 8,
                           decoration: BoxDecoration(
-                            color: widget.isCameraOn ? Colors.green : Colors.grey,
+                            color: widget.isCameraOn && widget.cameraWorking
+                                ? Colors.green
+                                : Colors.grey,
                             shape: BoxShape.circle,
                           ),
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          widget.isCameraOn ? 'Video: Live HD' : 'Video: Off',
+                          !widget.isCameraOn
+                              ? 'Video: Off'
+                              : widget.cameraWorking
+                                  ? 'Video: Live'
+                                  : 'Video: Connecting',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 11,
@@ -147,11 +130,17 @@ class _CameraPreviewWidgetState extends State<CameraPreviewWidget>
                         Icon(
                           widget.isMicOn ? Icons.mic_rounded : Icons.mic_off_rounded,
                           size: 14,
-                          color: widget.isMicOn ? AppColors.yellow : Colors.grey,
+                          color: widget.isMicOn && widget.micWorking
+                              ? AppColors.yellow
+                              : Colors.grey,
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          widget.isMicOn ? 'Mic: Active' : 'Mic: Muted',
+                          !widget.isMicOn
+                              ? 'Mic: Off'
+                              : widget.micWorking
+                                  ? 'Mic: Active'
+                                  : 'Mic: Unavailable',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 11,
@@ -187,40 +176,32 @@ class _CameraPreviewWidgetState extends State<CameraPreviewWidget>
                     const SizedBox(width: 8),
                     // Live audio frequency bars
                     Expanded(
-                      child: widget.isMicOn
-                          ? AnimatedBuilder(
-                              animation: _pulseController,
-                              builder: (context, _) => Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceEvenly,
-                                children: List.generate(14, (index) {
-                                  final phase = (index / 14) * math.pi;
-                                  final animVal = math.sin(
-                                    _pulseController.value * math.pi + phase,
-                                  ).abs();
-                                  final barHeight = 4.0 + (animVal * 16.0);
-                                  return Container(
-                                    width: 3.5,
-                                    height: barHeight,
-                                    decoration: BoxDecoration(
-                                      color: index > 10
-                                          ? AppColors.coral
-                                          : (index > 7
-                                              ? AppColors.yellow
-                                              : Colors.greenAccent),
-                                      borderRadius: BorderRadius.circular(2),
-                                    ),
-                                  );
-                                }),
-                              ),
+                      child: widget.isMicOn && widget.micWorking
+                          ? Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: List.generate(14, (index) {
+                                const levels = [
+                                  .42, .7, .55, .9, .64, .82, .48,
+                                  .76, .96, .61, .8, .5, .72, .44,
+                                ];
+                                final barHeight =
+                                    3.0 + widget.micLevel * 18 * levels[index];
+                                return AnimatedContainer(
+                                  duration: const Duration(milliseconds: 140),
+                                  width: 3.5,
+                                  height: barHeight,
+                                  decoration: BoxDecoration(
+                                    color: index > 10
+                                        ? AppColors.coral
+                                        : (index > 7
+                                            ? AppColors.yellow
+                                            : Colors.greenAccent),
+                                    borderRadius: BorderRadius.circular(2),
+                                  ),
+                                );
+                              }),
                             )
-                          : const Text(
-                              'Microphone muted',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 11,
-                              ),
-                            ),
+                          : const SizedBox.shrink(),
                     ),
                     const SizedBox(width: 12),
                     // Camera Toggle
@@ -264,7 +245,9 @@ class _CameraPreviewWidgetState extends State<CameraPreviewWidget>
 
   Widget _buildCameraFeed() {
     final controller = widget.controller;
-    if (controller != null && controller.value.isInitialized) {
+    if (widget.cameraWorking &&
+        controller != null &&
+        controller.value.isInitialized) {
       return SizedBox.expand(child: CameraPreview(controller));
     }
     return Container(
@@ -276,32 +259,10 @@ class _CameraPreviewWidgetState extends State<CameraPreviewWidget>
         ),
       ),
       child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.12),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.person_rounded,
-                size: 48,
-                color: Colors.white70,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Speaker Camera Preview',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.8),
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
+        child: Icon(
+          Icons.camera_alt_outlined,
+          size: 42,
+          color: Colors.white70,
         ),
       ),
     );
@@ -311,17 +272,7 @@ class _CameraPreviewWidgetState extends State<CameraPreviewWidget>
     return Container(
       color: const Color(0xFF111827),
       child: const Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.videocam_off_rounded, size: 48, color: Colors.white38),
-            SizedBox(height: 8),
-            Text(
-              'Camera is turned off',
-              style: TextStyle(color: Colors.white54, fontSize: 13),
-            ),
-          ],
-        ),
+        child: Icon(Icons.videocam_off_rounded, size: 48, color: Colors.white38),
       ),
     );
   }

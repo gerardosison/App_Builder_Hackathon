@@ -5,6 +5,22 @@ import 'package:flutter/material.dart';
 /// Brand story: deep navy authority, sky-blue + mint pastels for interactive
 /// warmth, and gold STRICTLY reserved for stars/achievements.
 abstract final class AppColors {
+  static Color primaryText(BuildContext context) =>
+      Theme.of(context).colorScheme.onSurface;
+
+  static Color secondaryText(BuildContext context) =>
+      Theme.of(context).colorScheme.onSurfaceVariant;
+
+  static Color brandForeground(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark
+          ? Theme.of(context).colorScheme.primary
+          : navy;
+
+  static Color accentForeground(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark
+          ? Theme.of(context).colorScheme.primary
+          : blue;
+
   // ---------------------------------------------------------------- Brand
   /// Deep navy — primary buttons, headlines, active nav markers.
   static const Color navy = Color(0xFF1B2A6B);

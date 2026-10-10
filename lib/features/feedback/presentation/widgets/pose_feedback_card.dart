@@ -20,7 +20,7 @@ class PoseFeedbackCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: AppColors.line),
         boxShadow: const [
@@ -42,20 +42,20 @@ class PoseFeedbackCard extends StatelessWidget {
                   color: AppColors.mint,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.accessibility_new_rounded,
-                  color: AppColors.navy,
+                  color: AppColors.brandForeground(context),
                   size: 20,
                 ),
               ),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: Text(
                   'Body Language & Posture',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.navy,
+                    color: AppColors.brandForeground(context),
                   ),
                 ),
               ),
@@ -90,10 +90,10 @@ class PoseFeedbackCard extends StatelessWidget {
               ),
               Text(
                 '$eyeContactScore%',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w800,
-                  color: AppColors.blue,
+                  color: AppColors.accentForeground(context),
                 ),
               ),
             ],
@@ -105,13 +105,16 @@ class PoseFeedbackCard extends StatelessWidget {
               value: eyeContactScore / 100.0,
               minHeight: 6,
               backgroundColor: AppColors.line,
-              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.blue),
+              valueColor: AlwaysStoppedAnimation<Color>(
+                AppColors.accentForeground(context),
+              ),
             ),
           ),
           const SizedBox(height: 14),
 
           // Posture evaluation row
-          _buildDetailRow(
+        _buildDetailRow(
+          context,
             icon: Icons.airline_seat_recline_normal_rounded,
             title: 'Posture & Head Stability',
             subtitle: postureEvaluation,
@@ -119,7 +122,8 @@ class PoseFeedbackCard extends StatelessWidget {
           const SizedBox(height: 10),
 
           // Gesture evaluation row
-          _buildDetailRow(
+        _buildDetailRow(
+          context,
             icon: Icons.pan_tool_outlined,
             title: 'Hand & Arm Gestures',
             subtitle: gestureEvaluation,
@@ -129,7 +133,8 @@ class PoseFeedbackCard extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailRow({
+  Widget _buildDetailRow(
+    BuildContext context, {
     required IconData icon,
     required String title,
     required String subtitle,
@@ -137,7 +142,7 @@ class PoseFeedbackCard extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 18, color: AppColors.navySoft),
+        Icon(icon, size: 18, color: AppColors.secondaryText(context)),
         const SizedBox(width: 10),
         Expanded(
           child: Column(
@@ -145,18 +150,18 @@ class PoseFeedbackCard extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.ink,
+                  color: AppColors.primaryText(context),
                 ),
               ),
               const SizedBox(height: 2),
               Text(
                 subtitle,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: AppColors.navySoft,
+                  color: AppColors.secondaryText(context),
                   height: 1.3,
                 ),
               ),

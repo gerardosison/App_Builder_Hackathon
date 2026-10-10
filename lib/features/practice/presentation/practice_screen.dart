@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -9,8 +10,10 @@ import '../../../app/app_router.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/models/practice_session.dart';
 import '../../../core/models/pose_metrics.dart';
+import '../../../core/models/speech_metrics.dart';
 import '../../../features/ai/feedback/local_llm_service.dart';
 import '../services/audio_recorder_service.dart';
+import '../services/camera_platform_support.dart';
 import '../services/pose_camera_session.dart';
 import 'widgets/audience_character.dart';
 import 'widgets/practice_timer.dart';
@@ -22,11 +25,15 @@ class PracticeScreen extends ConsumerStatefulWidget {
     this.speechTopic = 'Tell a story in 60 seconds',
     this.isCameraInitiallyOn = true,
     this.isMicInitiallyOn = true,
+    this.cameraName,
+    this.microphoneDeviceId,
   });
 
   final String speechTopic;
   final bool isCameraInitiallyOn;
   final bool isMicInitiallyOn;
+  final String? cameraName;
+  final String? microphoneDeviceId;
 
   @override
   ConsumerState<PracticeScreen> createState() => _PracticeScreenState();
@@ -46,23 +53,42 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
   final PoseCameraSession _poseSession = PoseCameraSession();
   CameraController? _cameraController;
   CameraDescription? _cameraDescription;
+  Future<void>? _cameraPreparation;
+  late bool _isCameraOn;
+  late bool _isMicOn;
   bool _isAnalyzing = false;
 
   @override
   void initState() {
     super.initState();
-    unawaited(_prepareCamera());
+    _isCameraOn = widget.isCameraInitiallyOn;
+    _isMicOn = widget.isMicInitiallyOn;
+    if (_isCameraOn) _cameraPreparation = _prepareCamera();
     _startCountdown();
   }
 
   Future<void> _prepareCamera() async {
     try {
+      if (!cameraPluginSupportedOnCurrentPlatform) {
+        throw UnsupportedError(cameraPluginUnavailableMessage);
+      }
       final cameras = await availableCameras();
-      if (cameras.isEmpty) return;
-      final camera = cameras.firstWhere(
-        (item) => item.lensDirection == CameraLensDirection.back,
-        orElse: () => cameras.first,
+      if (cameras.isEmpty) {
+        throw StateError('No connected camera is available.');
+      }
+      final selectedCamera = _firstOrNull(
+        cameras.where((item) => item.name == widget.cameraName),
       );
+      if (widget.cameraName != null && selectedCamera == null) {
+        throw StateError('The selected camera is no longer connected.');
+      }
+      final camera = selectedCamera ??
+          _firstOrNull(
+            cameras.where(
+              (item) => item.lensDirection == CameraLensDirection.front,
+            ),
+          ) ??
+          cameras.first;
       final controller = PoseCameraSession.createCameraController(camera);
       await controller.initialize();
       if (!mounted) {
@@ -75,8 +101,15 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
       });
     } catch (error) {
       if (mounted) {
+        setState(() => _isCameraOn = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Camera unavailable: $error')),
+          SnackBar(
+            content: Text(
+              error is MissingPluginException || error is UnsupportedError
+                  ? cameraPluginUnavailableMessage
+                  : 'Camera unavailable: $error',
+            ),
+          ),
         );
       }
     }
@@ -111,14 +144,38 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
 
   Future<void> _startRealCapture() async {
     try {
-      await _audio.startRecording();
+      if (_isMicOn) {
+        final devices = await _audio.listInputDevices();
+        final matching = devices.where(
+          (device) => device.id == widget.microphoneDeviceId,
+        );
+        final selectedDevice = matching.isEmpty ? null : matching.first;
+        if (widget.microphoneDeviceId != null && selectedDevice == null) {
+          throw StateError('The selected microphone is no longer connected.');
+        }
+        _audio.selectInputDevice(selectedDevice);
+        await _audio.startRecording(device: selectedDevice);
+      }
+      if (_isCameraOn) {
+        await (_cameraPreparation ??= _prepareCamera());
+      }
       final controller = _cameraController;
       final camera = _cameraDescription;
-      if (controller != null && camera != null) {
+      if (_isCameraOn && controller != null && camera != null) {
         await _poseSession.start(controller, camera);
+      }
+      if (mounted) {
+        setState(() {
+          _isMicOn = _audio.isRecording;
+          _isCameraOn = _cameraController?.value.isInitialized == true;
+        });
       }
     } catch (error) {
       if (mounted) {
+        setState(() {
+          _isMicOn = _audio.isRecording;
+          _isCameraOn = _cameraController?.value.isInitialized == true;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Hindi masimulan ang recording/camera: $error')),
         );
@@ -136,34 +193,44 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
     _speechTimer?.cancel();
     setState(() => _isAnalyzing = true);
     try {
-      final seconds = _audio.secondsElapsed;
+      final recordedSeconds = _audio.secondsElapsed;
+      final seconds = recordedSeconds > 0
+          ? recordedSeconds
+          : _elapsedSpeechSeconds;
       final audioPath = await _audio.stopAndGetPath();
       PoseMetrics? poseMetrics;
       if (_poseSession.isRunning) {
         poseMetrics = await _poseSession.stop('practice-${DateTime.now().millisecondsSinceEpoch}');
       }
-      if (audioPath == null || seconds < 1) {
-        throw StateError('Magsalita muna nang kahit ilang segundo bago tapusin.');
+      final hasAudio = _isMicOn && audioPath != null && recordedSeconds > 0;
+      final hasPose = poseMetrics != null && poseMetrics.totalFrames > 0;
+      if (!hasAudio && !hasPose) {
+        throw StateError(
+          'No usable audio or camera frames were captured. Enable a microphone or camera and try again.',
+        );
       }
 
       final speechService = ref.read(speechRecognitionProvider);
-      final transcription = await speechService.transcribe(audioPath);
-      if (!transcription.isSuccess) {
-        throw StateError(
-          transcription.errorMessage ?? 'Hindi na-transcribe ang recording.',
+      var metrics = SpeechMetrics.empty();
+      if (hasAudio) {
+        final transcription = await speechService.transcribe(audioPath!);
+        if (!transcription.isSuccess) {
+          throw StateError(
+            transcription.errorMessage ?? 'Hindi na-transcribe ang recording.',
+          );
+        }
+        metrics = speechService.calculateMetrics(
+          transcription: transcription,
+          durationSeconds: seconds.toDouble(),
         );
       }
-      final speechMetrics = speechService.calculateMetrics(
-        transcription: transcription,
-        durationSeconds: seconds.toDouble(),
-      );
-      ref.read(lastSpeechMetricsProvider.notifier).state = speechMetrics;
+      ref.read(lastSpeechMetricsProvider.notifier).state = metrics;
       ref.read(lastPoseMetricsProvider.notifier).state = poseMetrics;
 
       final llm = LocalLlmService();
       if (!llm.isLoaded) await llm.initialize();
       final report = await ref.read(feedbackServiceProvider).generate(
-            speech: speechMetrics,
+            speech: metrics,
             pose: poseMetrics,
             document: ref.read(lastDocAnalysisProvider),
             speakingGoal: widget.speechTopic,
@@ -174,8 +241,8 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
         date: DateTime.now(),
         title: widget.speechTopic,
         duration: Duration(seconds: seconds),
-        avgWpm: speechMetrics.wordsPerMinute.round(),
-        fillerCount: speechMetrics.totalFillers,
+        avgWpm: metrics.wordsPerMinute.round(),
+        fillerCount: metrics.totalFillers,
         // Eye gaze is not tracked; keep this unset instead of relabeling posture.
         eyeContactPct: 0,
         paceScore: report.overallScore.round(),
@@ -261,14 +328,6 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                 ),
               ),
               const SizedBox(height: 8),
-              Text(
-                'Topic: "${widget.speechTopic}"',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: AppColors.sky,
-                  fontSize: 15,
-                ),
-              ),
               const SizedBox(height: 40),
 
               // Animated Countdown Timer Display (10 secs to 0)
@@ -373,14 +432,15 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      if (_cameraController?.value.isInitialized == true)
+                      if (_isCameraOn &&
+                          _cameraController?.value.isInitialized == true)
                         ClipRRect(
                           borderRadius: BorderRadius.circular(14),
                           child: CameraPreview(_cameraController!),
                         )
                       else
                         const Icon(
-                          Icons.person_rounded,
+                          Icons.videocam_off_rounded,
                           color: Colors.white54,
                           size: 38,
                         ),
@@ -477,16 +537,29 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
           ),
         ],
       ),
-      child: const Row(children: [
-        Icon(Icons.mic_rounded, color: AppColors.yellow, size: 18),
-        SizedBox(width: 8),
+      child: Row(children: [
+        Icon(
+          _isMicOn && _audio.isRecording
+              ? Icons.mic_rounded
+              : Icons.mic_off_rounded,
+          color: _isMicOn && _audio.isRecording
+              ? AppColors.yellow
+              : Colors.white54,
+          size: 18,
+        ),
+        const SizedBox(width: 8),
         Expanded(
           child: Text(
-            'Audio is recording locally for offline Whisper transcription.',
-            style: TextStyle(color: Colors.white, fontSize: 12),
+            _isMicOn && _audio.isRecording
+                ? 'Audio is recording locally for offline Whisper transcription.'
+                : 'Microphone is off. Speech delivery metrics are paused.',
+            style: const TextStyle(color: Colors.white, fontSize: 12),
           ),
         ),
       ]),
     );
   }
 }
+
+T? _firstOrNull<T>(Iterable<T> items) =>
+    items.isEmpty ? null : items.first;

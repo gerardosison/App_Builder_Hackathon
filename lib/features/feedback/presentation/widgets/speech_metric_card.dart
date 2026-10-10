@@ -26,7 +26,7 @@ class SpeechMetricCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: AppColors.line),
         boxShadow: const [
@@ -48,7 +48,11 @@ class SpeechMetricCard extends StatelessWidget {
                   color: AppColors.sky,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(icon, color: AppColors.navy, size: 20),
+                child: Icon(
+                  icon,
+                  color: AppColors.brandForeground(context),
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -57,18 +61,18 @@ class SpeechMetricCard extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.navySoft,
+                        color: AppColors.secondaryText(context),
                       ),
                     ),
                     Text(
                       value,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w900,
-                        color: AppColors.navy,
+                        color: AppColors.brandForeground(context),
                       ),
                     ),
                   ],
@@ -96,9 +100,9 @@ class SpeechMetricCard extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             description,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12.5,
-              color: AppColors.navySoft,
+              color: AppColors.secondaryText(context),
               height: 1.35,
             ),
           ),

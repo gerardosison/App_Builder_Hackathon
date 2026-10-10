@@ -47,7 +47,7 @@ class CoachingTipCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -61,7 +61,10 @@ class CoachingTipCard extends StatelessWidget {
                     ),
                     Text(
                       'Personalized from your previous session history',
-                      style: TextStyle(fontSize: 11.5, color: AppColors.navySoft),
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: AppColors.secondaryText(context),
+                      ),
                     ),
                   ],
                 ),
@@ -89,10 +92,10 @@ class CoachingTipCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     lastSessionComparison,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.ink,
+                      color: AppColors.primaryText(context),
                       height: 1.35,
                     ),
                   ),
@@ -102,12 +105,12 @@ class CoachingTipCard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
 
-          const Text(
+          Text(
             'RECOMMENDED ACTION ITEMS:',
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w800,
-              color: AppColors.blue,
+              color: AppColors.accentForeground(context),
               letterSpacing: 0.6,
             ),
           ),
@@ -128,9 +131,9 @@ class CoachingTipCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       tip,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12.5,
-                        color: AppColors.ink,
+                        color: AppColors.primaryText(context),
                         height: 1.35,
                       ),
                     ),

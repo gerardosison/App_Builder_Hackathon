@@ -113,12 +113,12 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
                     ),
               ),
               const SizedBox(height: 10),
-              const Text(
+              Text(
                 'PipSpeak is processing speech delivery and body language metrics behind the scenes.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,
-                  color: AppColors.navySoft,
+                  color: AppColors.secondaryText(context),
                   height: 1.4,
                 ),
               ),
@@ -188,8 +188,9 @@ class _ProcessingScreenState extends State<ProcessingScreen> {
                                     ? FontWeight.w700
                                     : FontWeight.w500,
                                 color: isComplete
-                                    ? AppColors.ink
-                                    : AppColors.navySoft.withValues(alpha: 0.6),
+                                    ? AppColors.primaryText(context)
+                                    : AppColors.secondaryText(context)
+                                        .withValues(alpha: 0.8),
                               ),
                             ),
                           ),

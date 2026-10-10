@@ -137,9 +137,9 @@ class _PersonalizationScreenState extends State<PersonalizationScreen> {
                         isLanguagePage
                             ? 'Select your preferred language with flag icon & flag name.'
                             : 'Choose all speaking formats relevant to your goals from the dropdown.',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
-                          color: AppColors.navySoft,
+                          color: AppColors.secondaryText(context),
                         ),
                       ),
                       const SizedBox(height: 28),
@@ -249,7 +249,7 @@ class _PersonalizationScreenState extends State<PersonalizationScreen> {
                                       : FontWeight.w500,
                                   color: isSelected
                                       ? AppColors.navy
-                                      : AppColors.ink,
+                                      : AppColors.primaryText(context),
                                 ),
                               ),
                               activeColor: AppColors.blue,

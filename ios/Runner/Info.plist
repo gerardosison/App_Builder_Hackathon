@@ -26,6 +26,10 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>PipSpeak uses the camera for live posture and delivery feedback processed on this device.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>PipSpeak uses the microphone for speech transcription and delivery feedback processed on this device.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

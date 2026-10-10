@@ -4,6 +4,107 @@ import '../../../app/theme/app_colors.dart';
 import '../../../core/widgets/pip_misc.dart';
 import 'personalization_screen.dart';
 
+/// Theme-aware colours for the tour. The shared [AppColors] aliases (ink,
+/// paper, line, blue, navySoft, sky, mint...) are fixed light-mode values, so
+/// using them directly in dark mode produced white panels and unreadable text.
+/// Every colour on this screen comes from here instead.
+class _Pal {
+  const _Pal({
+    required this.accent,
+    required this.onAccent,
+    required this.accentFill,
+    required this.onAccentFill,
+    required this.card,
+    required this.inner,
+    required this.border,
+    required this.text,
+    required this.textSoft,
+    required this.tile1,
+    required this.tile2,
+    required this.hero,
+    required this.onHero,
+    required this.heroLabel,
+    required this.success,
+    required this.danger,
+    required this.shadow,
+  });
+
+  /// Brand accent for icons, links, bars, active progress.
+  final Color accent;
+
+  /// Text/icon colour placed ON the accent colour.
+  final Color onAccent;
+
+  /// Soft tinted fill (chips, avatar, inactive progress, about box).
+  final Color accentFill;
+  final Color onAccentFill;
+
+  /// Mockup card background, and the panels nested inside it.
+  final Color card;
+  final Color inner;
+  final Color border;
+
+  final Color text;
+  final Color textSoft;
+
+  /// Stat tiles.
+  final Color tile1;
+  final Color tile2;
+
+  /// Highlight card (today's warm-up).
+  final Color hero;
+  final Color onHero;
+  final Color heroLabel;
+
+  final Color success;
+  final Color danger;
+  final Color shadow;
+
+  static _Pal of(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    if (dark) {
+      return const _Pal(
+        accent: AppColors.inversePrimary,
+        onAccent: AppColors.navyDeep,
+        accentFill: AppColors.darkSurface3,
+        onAccentFill: AppColors.darkOnSurface,
+        card: AppColors.darkSurface1,
+        inner: AppColors.darkSurface2,
+        border: Color(0xFF3A4A85),
+        text: AppColors.darkOnSurface,
+        textSoft: AppColors.darkOnSurfaceVariant,
+        tile1: AppColors.darkSurface3,
+        tile2: Color(0xFF1E4D3B),
+        hero: Color(0xFF2B3C85),
+        onHero: Colors.white,
+        heroLabel: AppColors.sky,
+        success: AppColors.tertiaryFixed,
+        danger: Color(0xFFFFB4AB),
+        shadow: Color(0x66000000),
+      );
+    }
+    return const _Pal(
+      accent: AppColors.blue,
+      onAccent: Colors.white,
+      accentFill: AppColors.sky,
+      onAccentFill: AppColors.navy,
+      card: AppColors.paper,
+      inner: Colors.white,
+      border: AppColors.line,
+      text: AppColors.ink,
+      textSoft: AppColors.navySoft,
+      tile1: AppColors.sky,
+      tile2: AppColors.mint,
+      hero: AppColors.navy,
+      onHero: Colors.white,
+      heroLabel: AppColors.sky,
+      success: Color(0xFF2E7D32),
+      danger: AppColors.coral,
+      shadow: Color(0x1414213D),
+    );
+  }
+}
+
 class TourScreen extends StatefulWidget {
   const TourScreen({super.key});
 
@@ -102,6 +203,7 @@ class _TourScreenState extends State<TourScreen> {
   @override
   Widget build(BuildContext context) {
     final currentPage = _pages[_page];
+    final pal = _Pal.of(context);
 
     return Scaffold(
       appBar: pipAppBar(
@@ -111,6 +213,7 @@ class _TourScreenState extends State<TourScreen> {
         onBack: _previous,
         actions: [
           TextButton(
+            style: TextButton.styleFrom(foregroundColor: pal.accent),
             onPressed: () => Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (_) => const PersonalizationScreen()),
@@ -137,9 +240,7 @@ class _TourScreenState extends State<TourScreen> {
                         right: index == _pages.length - 1 ? 0 : 6,
                       ),
                       decoration: BoxDecoration(
-                        color: index <= _page
-                            ? AppColors.blue
-                            : AppColors.sky,
+                        color: index <= _page ? pal.accent : pal.accentFill,
                         borderRadius: BorderRadius.circular(6),
                       ),
                     ),
@@ -154,13 +255,13 @@ class _TourScreenState extends State<TourScreen> {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: AppColors.sky,
+                      color: pal.accentFill,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: AppColors.line, width: 1.5),
+                      border: Border.all(color: pal.border, width: 1.5),
                     ),
                     child: Icon(
                       currentPage.icon,
-                      color: AppColors.navy,
+                      color: pal.onAccentFill,
                       size: 24,
                     ),
                   ),
@@ -172,14 +273,14 @@ class _TourScreenState extends State<TourScreen> {
                         Text(
                           currentPage.title,
                           style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(fontWeight: FontWeight.w800),
+                              ?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: pal.text,
+                              ),
                         ),
                         Text(
                           currentPage.tagline,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: AppColors.navySoft,
-                          ),
+                          style: TextStyle(fontSize: 13, color: pal.textSoft),
                         ),
                       ],
                     ),
@@ -194,11 +295,8 @@ class _TourScreenState extends State<TourScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Interactive Preview Mockup Card
                       _PagePreviewMockup(previewType: currentPage.previewType),
                       const SizedBox(height: 32),
-
-                      // Tooltip Callout Box: Function & Features
                       _TooltipCallout(data: currentPage),
                     ],
                   ),
@@ -211,6 +309,10 @@ class _TourScreenState extends State<TourScreen> {
                 height: 54,
                 child: ElevatedButton(
                   onPressed: _next,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: pal.accent,
+                    foregroundColor: pal.onAccent,
+                  ),
                   child: Text(
                     _page == _pages.length - 1
                         ? 'Personalize my journey'
@@ -258,57 +360,50 @@ class _TooltipCallout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final pal = _Pal.of(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            const Icon(
-              Icons.info_outline_rounded,
-              size: 24,
-              color: AppColors.blue,
-            ),
+            Icon(Icons.info_outline_rounded, size: 24, color: pal.accent),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
                 '${data.title} function & features',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontSize: 16),
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontSize: 16,
+                  color: pal.text,
+                ),
               ),
             ),
           ],
         ),
         const SizedBox(height: 12),
 
-        // Function statement
-        const Text(
+        Text(
           'FUNCTION:',
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w800,
-            color: AppColors.blue,
+            color: pal.accent,
             letterSpacing: 0.5,
           ),
         ),
         const SizedBox(height: 4),
         Text(
           data.function,
-          style: const TextStyle(
-            fontSize: 13.5,
-            height: 1.4,
-            color: AppColors.ink,
-          ),
+          style: TextStyle(fontSize: 13.5, height: 1.4, color: pal.text),
         ),
         const SizedBox(height: 12),
 
-        // Features statement
-        const Text(
+        Text(
           'KEY FEATURES:',
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w800,
-            color: AppColors.blue,
+            color: pal.accent,
             letterSpacing: 0.5,
           ),
         ),
@@ -319,16 +414,12 @@ class _TooltipCallout extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(
-                  Icons.check_circle_rounded,
-                  size: 16,
-                  color: Colors.green,
-                ),
+                Icon(Icons.check_circle_rounded, size: 16, color: pal.success),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     feat,
-                    style: const TextStyle(fontSize: 13, height: 1.35),
+                    style: TextStyle(fontSize: 13, height: 1.35, color: pal.text),
                   ),
                 ),
               ],
@@ -348,19 +439,17 @@ class _PagePreviewMockup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final pal = _Pal.of(context);
+
     return Container(
       height: 230,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.paper,
+        color: pal.card,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.line, width: 2),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x1414213D),
-            offset: Offset(4, 5),
-            blurRadius: 0,
-          ),
+        border: Border.all(color: pal.border, width: 2),
+        boxShadow: [
+          BoxShadow(color: pal.shadow, offset: const Offset(4, 5), blurRadius: 0),
         ],
       ),
       child: switch (previewType) {
@@ -379,6 +468,8 @@ class _HomePreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final pal = _Pal.of(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -386,21 +477,29 @@ class _HomePreview extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            Text(
               'PipSpeak • Home',
-              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+              style: TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 13,
+                color: pal.text,
+              ),
             ),
             Tooltip(
               message: 'Quick streak count',
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: AppColors.sky,
+                  color: pal.accentFill,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Text(
+                child: Text(
                   '🔥 7 Days',
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: pal.onAccentFill,
+                  ),
                 ),
               ),
             ),
@@ -412,34 +511,38 @@ class _HomePreview extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.navy,
+              color: pal.hero,
               borderRadius: BorderRadius.circular(16),
             ),
-            child: const Column(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
                   "TODAY'S WARM-UP",
                   style: TextStyle(
-                    color: AppColors.blue,
+                    color: pal.heroLabel,
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
+                    letterSpacing: 0.4,
                   ),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text(
                   'Tell a story in 60 seconds',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: pal.onHero,
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
                   ),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text(
                   'Quick exercise for a clearer, firmer vocal tone.',
-                  style: TextStyle(color: Colors.white70, fontSize: 11),
+                  style: TextStyle(
+                    color: pal.onHero.withValues(alpha: 0.85),
+                    fontSize: 11,
+                  ),
                 ),
               ],
             ),
@@ -448,52 +551,45 @@ class _HomePreview extends StatelessWidget {
         const SizedBox(height: 10),
         Row(
           children: [
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                decoration: BoxDecoration(
-                  color: AppColors.sky,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Column(
-                  children: [
-                    Text(
-                      '12',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    Text('Sessions', style: TextStyle(fontSize: 10)),
-                  ],
-                ),
-              ),
-            ),
+            Expanded(child: _StatTile(value: '12', label: 'Sessions', fill: pal.tile1)),
             const SizedBox(width: 8),
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                decoration: BoxDecoration(
-                  color: AppColors.mint,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Column(
-                  children: [
-                    Text(
-                      '88%',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    Text('Fluency', style: TextStyle(fontSize: 10)),
-                  ],
-                ),
-              ),
-            ),
+            Expanded(child: _StatTile(value: '88%', label: 'Fluency', fill: pal.tile2)),
           ],
         ),
       ],
+    );
+  }
+}
+
+class _StatTile extends StatelessWidget {
+  const _StatTile({required this.value, required this.label, required this.fill});
+
+  final String value;
+  final String label;
+  final Color fill;
+
+  @override
+  Widget build(BuildContext context) {
+    final pal = _Pal.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        color: fill,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              color: pal.onAccentFill,
+            ),
+          ),
+          Text(label, style: TextStyle(fontSize: 10, color: pal.onAccentFill)),
+        ],
+      ),
     );
   }
 }
@@ -503,25 +599,35 @@ class _PracticePreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final pal = _Pal.of(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Text(
+        Text(
           'Live Speech Training Studio',
-          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 13,
+            color: pal.text,
+          ),
         ),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: pal.inner,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.line),
+            border: Border.all(color: pal.border),
           ),
-          child: const Text(
+          child: Text(
             'Prompt: Explain your favorite hobby in 2 mins',
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: pal.text,
+            ),
           ),
         ),
         const SizedBox(height: 14),
@@ -529,31 +635,33 @@ class _PracticePreview extends StatelessWidget {
         Container(
           width: 58,
           height: 58,
-          decoration: const BoxDecoration(
-            color: AppColors.blue,
+          decoration: BoxDecoration(
+            color: pal.accent,
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: Color(0x334F7CFF),
+                color: pal.accent.withValues(alpha: 0.3),
                 blurRadius: 12,
                 spreadRadius: 2,
               ),
             ],
           ),
-          child: const Icon(Icons.mic_rounded, color: Colors.white, size: 28),
+          child: Icon(Icons.mic_rounded, color: pal.onAccent, size: 28),
         ),
         const SizedBox(height: 12),
-        const Row(
+        Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.graphic_eq_rounded, color: AppColors.coral, size: 20),
-            SizedBox(width: 6),
-            Text(
-              'Real-time Pacing & Filler Word Detection',
-              style: TextStyle(
-                fontSize: 11,
-                color: AppColors.navySoft,
-                fontWeight: FontWeight.bold,
+            Icon(Icons.graphic_eq_rounded, color: pal.danger, size: 20),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                'Real-time Pacing & Filler Word Detection',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: pal.textSoft,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],
@@ -568,60 +676,28 @@ class _ProgressPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final pal = _Pal.of(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text(
+        Text(
           'Speech Trends & Performance',
-          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 13,
+            color: pal.text,
+          ),
         ),
         const SizedBox(height: 10),
         Row(
           children: [
             Expanded(
-              child: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: AppColors.sky,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Confidence', style: TextStyle(fontSize: 10)),
-                    Text(
-                      '92/100',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              child: _ScoreTile(label: 'Confidence', value: '92/100', fill: pal.tile1),
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: AppColors.mint,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Clarity', style: TextStyle(fontSize: 10)),
-                    Text(
-                      '89%',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              child: _ScoreTile(label: 'Clarity', value: '89%', fill: pal.tile2),
             ),
           ],
         ),
@@ -631,19 +707,19 @@ class _ProgressPreview extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: pal.inner,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.line),
+              border: Border.all(color: pal.border),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                _bar('Mon', 40),
-                _bar('Tue', 65),
-                _bar('Wed', 85),
-                _bar('Thu', 70),
-                _bar('Fri', 90),
+                _bar(pal, 'Mon', 40),
+                _bar(pal, 'Tue', 65),
+                _bar(pal, 'Wed', 85),
+                _bar(pal, 'Thu', 70),
+                _bar(pal, 'Fri', 90),
               ],
             ),
           ),
@@ -652,7 +728,7 @@ class _ProgressPreview extends StatelessWidget {
     );
   }
 
-  Widget _bar(String day, double height) {
+  Widget _bar(_Pal pal, String day, double height) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
@@ -660,13 +736,47 @@ class _ProgressPreview extends StatelessWidget {
           width: 14,
           height: height * 0.4,
           decoration: BoxDecoration(
-            color: AppColors.blue,
+            color: pal.accent,
             borderRadius: BorderRadius.circular(4),
           ),
         ),
         const SizedBox(height: 4),
-        Text(day, style: const TextStyle(fontSize: 9)),
+        Text(day, style: TextStyle(fontSize: 9, color: pal.textSoft)),
       ],
+    );
+  }
+}
+
+class _ScoreTile extends StatelessWidget {
+  const _ScoreTile({required this.label, required this.value, required this.fill});
+
+  final String label;
+  final String value;
+  final Color fill;
+
+  @override
+  Widget build(BuildContext context) {
+    final pal = _Pal.of(context);
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: fill,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: TextStyle(fontSize: 10, color: pal.onAccentFill)),
+          Text(
+            value,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              color: pal.onAccentFill,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -676,6 +786,8 @@ class _ProfilePreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final pal = _Pal.of(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisAlignment: MainAxisAlignment.center,
@@ -685,27 +797,31 @@ class _ProfilePreview extends StatelessWidget {
             Container(
               width: 48,
               height: 48,
-              decoration: const BoxDecoration(
-                color: AppColors.sky,
+              decoration: BoxDecoration(
+                color: pal.accentFill,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.person_rounded,
                 size: 28,
-                color: AppColors.navy,
+                color: pal.onAccentFill,
               ),
             ),
             const SizedBox(width: 12),
-            const Column(
+            Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Alex Speaker',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: pal.text,
+                  ),
                 ),
                 Text(
                   'Level 4: Eloquent Speaker',
-                  style: TextStyle(fontSize: 11, color: AppColors.blue),
+                  style: TextStyle(fontSize: 11, color: pal.accent),
                 ),
               ],
             ),
@@ -715,24 +831,32 @@ class _ProfilePreview extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: pal.inner,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.line),
+            border: Border.all(color: pal.border),
           ),
-          child: const Column(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 'BADGES & ACHIEVEMENTS',
-                style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: pal.textSoft,
+                  letterSpacing: 0.4,
+                ),
               ),
-              SizedBox(height: 6),
+              const SizedBox(height: 6),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  Text('🏅 7-Day Streak', style: TextStyle(fontSize: 11)),
-                  Text('🎙️ 10+ Speeches', style: TextStyle(fontSize: 11)),
-                  Text('⭐ 90% Clarity', style: TextStyle(fontSize: 11)),
+                  Text('🏅 7-Day Streak',
+                      style: TextStyle(fontSize: 11, color: pal.text)),
+                  Text('🎙️ 10+ Speeches',
+                      style: TextStyle(fontSize: 11, color: pal.text)),
+                  Text('⭐ 90% Clarity',
+                      style: TextStyle(fontSize: 11, color: pal.text)),
                 ],
               ),
             ],
@@ -748,36 +872,39 @@ class _SettingsPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final pal = _Pal.of(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text(
+        Text(
           'Settings & Controls',
-          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 13,
+            color: pal.text,
+          ),
         ),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: pal.inner,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppColors.line),
+            border: Border.all(color: pal.border),
           ),
-          child: const Row(
+          child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
                 children: [
-                  Icon(
-                    Icons.dark_mode_outlined,
-                    size: 16,
-                    color: AppColors.blue,
-                  ),
-                  SizedBox(width: 8),
-                  Text('Dark mode', style: TextStyle(fontSize: 11)),
+                  Icon(Icons.dark_mode_outlined, size: 16, color: pal.accent),
+                  const SizedBox(width: 8),
+                  Text('Dark mode',
+                      style: TextStyle(fontSize: 11, color: pal.text)),
                 ],
               ),
-              Icon(Icons.toggle_on_rounded, color: AppColors.blue, size: 26),
+              Icon(Icons.toggle_on_rounded, color: pal.accent, size: 26),
             ],
           ),
         ),
@@ -787,11 +914,11 @@ class _SettingsPreview extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: AppColors.sky,
+              color: pal.accentFill,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.line, width: 1.2),
+              border: Border.all(color: pal.border, width: 1.2),
             ),
-            child: const Column(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -800,31 +927,34 @@ class _SettingsPreview extends StatelessWidget {
                     Icon(
                       Icons.info_outline_rounded,
                       size: 16,
-                      color: AppColors.navy,
+                      color: pal.onAccentFill,
                     ),
-                    SizedBox(width: 6),
+                    const SizedBox(width: 6),
                     Text(
                       'About PipSpeak Section',
                       style: TextStyle(
                         fontWeight: FontWeight.w800,
                         fontSize: 12,
-                        color: AppColors.navy,
+                        color: pal.onAccentFill,
                       ),
                     ),
                   ],
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text(
                   'Your companion app towards better public speaking and confidence.',
-                  style: TextStyle(fontSize: 11, color: AppColors.navySoft),
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: pal.onAccentFill.withValues(alpha: 0.85),
+                  ),
                 ),
-                SizedBox(height: 2),
+                const SizedBox(height: 2),
                 Text(
                   'Version 1.0.0 • Hackathon Edition',
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.blue,
+                    color: pal.onAccentFill,
                   ),
                 ),
               ],

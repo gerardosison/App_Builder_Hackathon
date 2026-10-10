@@ -76,6 +76,8 @@ flutter:
   uses-material-design: true
 
   assets:
+    - assets/images/
+    - assets/images/mascot/
     - assets/models/llm/
     - assets/models/whisper/
 

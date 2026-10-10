@@ -176,10 +176,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 textAlign: TextAlign.center,
                 style: TextStyle(fontWeight: FontWeight.w800, fontSize: 19),
               ),
-              content: const Text(
+              content: Text(
                 'Are you sure you want to cancel your registration? Any progress entered will not be saved.',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14, color: AppColors.navySoft),
+                style: TextStyle(
+                  fontSize: 14,
+                  color: AppColors.secondaryText(ctx),
+                ),
               ),
               actionsAlignment: MainAxisAlignment.center,
               actions: [
@@ -302,7 +305,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     const SizedBox(height: 8),
                     Text(
                       stepSubtitles[_step],
-                      style: const TextStyle(fontSize: 14, color: AppColors.navySoft),
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppColors.secondaryText(context),
+                      ),
                     ),
                     const SizedBox(height: 28),
 
@@ -347,14 +353,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(color: AppColors.line),
                         ),
-                        child: const Row(
+                        child: Row(
                           children: [
                             Icon(Icons.info_outline_rounded, size: 20, color: AppColors.blue),
                             SizedBox(width: 10),
                             Expanded(
                               child: Text(
                                 'This is how PipSpeak will warmly address you throughout your speech journey.',
-                                style: TextStyle(fontSize: 12, color: AppColors.navySoft),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.secondaryText(context),
+                                ),
                               ),
                             ),
                           ],
@@ -464,14 +473,18 @@ class _UsernameIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (text.isEmpty) {
-      return const Row(
+      return Row(
         children: [
-          Icon(Icons.info_outline_rounded, size: 16, color: AppColors.navySoft),
-          SizedBox(width: 8),
+          Icon(Icons.info_outline_rounded,
+              size: 16, color: AppColors.secondaryText(context)),
+          const SizedBox(width: 8),
           Expanded(
             child: Text(
               'Username must be unique (min 3 chars)',
-              style: TextStyle(fontSize: 12, color: AppColors.navySoft),
+              style: TextStyle(
+                fontSize: 12,
+                color: AppColors.secondaryText(context),
+              ),
             ),
           ),
         ],
@@ -516,14 +529,18 @@ class _UsernameIndicator extends StatelessWidget {
       );
     }
 
-    return const Row(
+    return Row(
       children: [
-        Icon(Icons.info_outline_rounded, size: 16, color: AppColors.navySoft),
-        SizedBox(width: 8),
+        Icon(Icons.info_outline_rounded,
+            size: 16, color: AppColors.secondaryText(context)),
+        const SizedBox(width: 8),
         Expanded(
           child: Text(
             'Username must be at least 3 characters',
-            style: TextStyle(fontSize: 12, color: AppColors.navySoft),
+            style: TextStyle(
+              fontSize: 12,
+              color: AppColors.secondaryText(context),
+            ),
           ),
         ),
       ],
@@ -543,7 +560,9 @@ class _PasswordIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isValid ? Colors.green : (length > 0 ? AppColors.coral : AppColors.navySoft);
+    final color = isValid
+        ? Colors.green
+        : (length > 0 ? AppColors.coral : AppColors.secondaryText(context));
     final icon = isValid
         ? Icons.check_circle_rounded
         : (length > 0 ? Icons.error_outline_rounded : Icons.info_outline_rounded);

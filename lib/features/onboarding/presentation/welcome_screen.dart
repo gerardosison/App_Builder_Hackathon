@@ -100,13 +100,13 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                 opacity: _fadeAnimation,
                 child: SlideTransition(
                   position: _slideAnimation,
-                  child: const Text(
+                  child: Text(
                     'Let’s begin your journey towards better speaking!',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 18,
                       height: 1.45,
-                      color: AppColors.navySoft,
+                      color: AppColors.secondaryText(context),
                       fontWeight: FontWeight.w500,
                     ),
                   ),

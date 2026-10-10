@@ -91,11 +91,11 @@ class _RehearsalScreenState extends State<RehearsalScreen>
               child: Stack(children: [
                 Positioned.fill(
                     child:
-                    const Center(
+                    Center(
                       child: Text(
                         'Camera Preview',
                         style: TextStyle(
-                          color: AppColors.navySoft,
+                          color: AppColors.secondaryText(context),
                           fontSize: 18,
                         ),
                       ),
