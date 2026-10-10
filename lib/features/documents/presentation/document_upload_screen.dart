@@ -117,12 +117,12 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
     if (_unreadable) return _buildUnreadable(context, text, scheme);
 
     return Scaffold(
-      appBar: pipAppBar(context, title: 'Upload Script'),
+      appBar: pipAppBar(context, title: 'Upload Script', showBack: false),
       body: SafeArea(
         child: Align(
           alignment: Alignment.topCenter,
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 560),
+            constraints: const BoxConstraints(maxWidth: 760),
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
               children: [
@@ -313,8 +313,9 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
     ColorScheme scheme,
   ) {
     return Scaffold(
-      appBar: pipAppBar(context, title: 'Upload Script'),
+      appBar: pipAppBar(context, title: 'Upload Script', showBack: false),
       body: PipPageBody(
+        maxWidth: 760,
         children: [
           const Center(
             child: PipMascot(asset: PipAsset.sad, size: 130, showBadge: false),

@@ -11,6 +11,7 @@ import '../../../core/models/models.dart';
 import '../../../core/widgets/pip_buttons.dart';
 import '../../../core/widgets/pip_cards.dart';
 import '../../../core/widgets/pip_chips.dart';
+import '../../../core/widgets/pip_mascot.dart';
 import '../../../core/widgets/pip_misc.dart';
 
 /// Rehearsal analysis — overall score, Delivery/Topic tabs, weak-section
@@ -36,22 +37,20 @@ class _RehearsalAnalysisScreenState
     final text = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
     final history = ref.watch(sessionHistoryProvider);
-    final session =
-        widget.session ??
-        (history.isNotEmpty
-            ? history.first
-            : PracticeSession(
-                id: 'empty',
-                date: DateTime.now(),
-                title: 'Practice session',
-                duration: Duration.zero,
-                avgWpm: 0,
-                fillerCount: 0,
-                eyeContactPct: 0,
-                paceScore: 0,
-                starsEarned: 0,
-                improved: false,
-              ));
+    if (widget.session == null && history.isEmpty) {
+      return Scaffold(
+        appBar: pipAppBar(context, title: 'Rehearsal Analysis'),
+        body: PipEmptyState(
+          title: 'No rehearsal to analyze',
+          message: 'Complete a practice session to see your speech insights.',
+          asset: PipAsset.analysis,
+          actionLabel: 'Start practicing',
+          actionIcon: Icons.mic_rounded,
+          onAction: () => context.go(AppRoutes.practiceSetup),
+        ),
+      );
+    }
+    final session = widget.session ?? history.first;
     final report = widget.session == null
         ? ref.watch(lastReportProvider)
         : ref.watch(sessionReportProvider(session.id)).valueOrNull;
@@ -67,7 +66,7 @@ class _RehearsalAnalysisScreenState
         child: Align(
           alignment: Alignment.topCenter,
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 560),
+            constraints: const BoxConstraints(maxWidth: 1120),
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
               children: [
@@ -148,16 +147,20 @@ class _RehearsalAnalysisScreenState
                 ),
                 const SizedBox(height: 16),
 
-                if (_tab == 0) ...[
-                  _metricBar(
+                if (_tab == 0)
+                  PipResponsiveGrid(
+                    minItemWidth: 420,
+                    maxColumns: 2,
+                    runSpacing: 10,
+                    children: [
+                      _metricBar(
                     'Pace',
                     session.avgWpm / 180,
                     '${session.avgWpm} wpm',
                     AppColors.secondaryFixed,
                     session.avgWpm > 155 ? 'Slightly fast' : 'In the zone',
                   ),
-                  const SizedBox(height: 10),
-                  _metricBar(
+                      _metricBar(
                     'Fillers',
                     session.fillerCount / 15,
                     '${session.fillerCount} words',
@@ -168,8 +171,7 @@ class _RehearsalAnalysisScreenState
                         ? 'Trim "um" & "like"'
                         : 'Clean delivery',
                   ),
-                  const SizedBox(height: 10),
-                  _metricBar(
+                      _metricBar(
                     'Posture',
                     (pose?.postureScore ?? 0) / 100,
                     pose == null || !pose.isPersonInFrame
@@ -182,8 +184,7 @@ class _RehearsalAnalysisScreenState
                         ? 'Measured from camera frames'
                         : pose.qualityLimitations.first,
                   ),
-                  const SizedBox(height: 10),
-                  _metricBar(
+                      _metricBar(
                     'Body sway',
                     ((pose?.bodySwayCm ?? 0) / 15).clamp(0.0, 1.0),
                     pose == null || !pose.isPersonInFrame
@@ -194,16 +195,24 @@ class _RehearsalAnalysisScreenState
                         ? 'No camera measurement'
                         : 'Measured from camera frames',
                   ),
-                ] else ...[
+                    ],
+                  )
+                else ...[
                   if (report == null ||
                       (report.strengths.isEmpty && report.improvements.isEmpty))
                     const Text('No topic feedback returned for this session.')
-                  else ...[
-                    for (final item in report.strengths)
-                      _sectionRow(item.title, 100, item.actionableTip),
-                    for (final item in report.improvements)
-                      _sectionRow(item.title, 50, item.actionableTip),
-                  ],
+                  else
+                    PipResponsiveGrid(
+                      minItemWidth: 420,
+                      maxColumns: 2,
+                      runSpacing: 10,
+                      children: [
+                        for (final item in report.strengths)
+                          _sectionRow(item.title, 100, item.actionableTip),
+                        for (final item in report.improvements)
+                          _sectionRow(item.title, 50, item.actionableTip),
+                      ],
+                    ),
                 ],
 
                 const SizedBox(height: 16),
@@ -215,42 +224,56 @@ class _RehearsalAnalysisScreenState
                     borderRadius: BorderRadius.circular(AppTheme.cardRadius),
                     border: Border.all(color: AppColors.secondaryFixed),
                   ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(
-                        Icons.flag_circle,
-                        color: AppColors.secondary,
-                        size: 22,
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          report?.llmResponse?.isNotEmpty == true
-                              ? report!.llmResponse!
-                              : report?.summary ??
-                                    'Wala pang local AI feedback para sa session na ito.',
-                          style: text.bodyMedium?.copyWith(
-                            color: AppColors.onSecondaryFixedVariant,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 900),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(
+                          Icons.flag_circle,
+                          color: AppColors.secondary,
+                          size: 22,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            report?.llmResponse?.isNotEmpty == true
+                                ? report!.llmResponse!
+                                : report?.summary ??
+                                      'Wala pang local AI feedback para sa session na ito.',
+                            style: text.bodyMedium?.copyWith(
+                              color: AppColors.onSecondaryFixedVariant,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 20),
-                PrimaryButton(
-                  label: 'Re-practice this speech',
-                  icon: Icons.replay,
-                  onPressed: () => context.push(AppRoutes.practiceSetup),
-                ),
-                const SizedBox(height: 8),
-                PipSecondaryButton(
-                  label: 'Export feedback',
-                  icon: Icons.ios_share,
-                  onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Export coming soon (mock)')),
-                  ),
+                PipResponsiveGrid(
+                  minItemWidth: 340,
+                  maxColumns: 2,
+                  runSpacing: 8,
+                  children: [
+                    PrimaryButton(
+                      label: 'Re-practice this speech',
+                      icon: Icons.replay,
+                      onPressed: () => context.push(
+                        AppRoutes.practiceSetup,
+                        extra: session.title,
+                      ),
+                    ),
+                    PipSecondaryButton(
+                      label: 'Export feedback',
+                      icon: Icons.ios_share,
+                      onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Export coming soon (mock)'),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

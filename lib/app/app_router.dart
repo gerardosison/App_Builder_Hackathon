@@ -75,7 +75,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   ref.onDispose(authRefresh.dispose);
   ref.listen(currentUidProvider, (_, _) => authRefresh.value++);
   return GoRouter(
-    initialLocation: AppRoutes.home,
+    initialLocation: AppRoutes.login,
     refreshListenable: authRefresh,
     redirect: (_, state) {
       final auth = ref.read(authUserProvider);
@@ -125,10 +125,15 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.practiceSetup,
-            builder: (_, state) => SetupScreen(
-              speechTopic:
-                  state.extra as String? ?? 'Tell a story in 60 seconds',
-            ),
+            builder: (_, state) {
+              final topic = state.extra;
+              return SetupScreen(
+                speechTopic: topic is String
+                    ? topic
+                    : 'Tell a story in 60 seconds',
+                showBack: topic is String,
+              );
+            },
           ),
           GoRoute(
             path: AppRoutes.practiceLive,
